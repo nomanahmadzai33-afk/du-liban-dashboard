@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Du Liban — Operations</title>
+<style>
+  :root{
+    --bg: #14110d; --bg-panel: #1c1812; --bg-card: #221c15;
+    --line: #382f22; --line-soft: #2a2419;
+    --gold: #c9973f; --gold-soft: #e8c988; --gold-dim: #7a5f2c;
+    --text: #f0e9db; --text-dim: #b3a894; --text-faint: #7d7362;
+    --free: #3a3226; --seated: #3a6e63; --reserved: #b3812f;
+    --danger: #b1503f; --radius: 10px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  *{ box-sizing: border-box; }
+  body{ margin:0; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+  .wrap{ max-width: 1180px; margin: 0 auto; padding: 0 16px 60px; }
+
+  header.top{ padding: 22px 16px 14px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+  .brand{ display:flex; align-items:baseline; gap:10px; max-width:1180px; margin:0 auto; }
+  .brand .mark{ font-family: Georgia, serif; font-style: italic; color: var(--gold-soft); font-size: 26px; }
+  .brand .name{ font-family: Georgia, serif; font-size: 20px; color: var(--text); }
+  .langToggle{ margin-left:auto; display:flex; gap:4px; background: var(--bg-card); border:1px solid var(--line); border-radius:6px; padding:2px; }
+  .langToggle button{ background:none; border:none; color: var(--text-faint); font-size:12px; font-weight:600; padding:5px 10px; border-radius:4px; cursor:pointer; }
+  .langToggle button.active{ background: var(--gold-dim); color: var(--gold-soft); }
+
+  nav.tabs{ display:flex; gap: 4px; max-width: 1180px; margin: 14px auto 0; overflow-x:auto; }
+  nav.tabs button{ background:none; border:none; color: var(--text-dim); font-size: 13px; padding: 10px 14px; cursor:pointer; border-bottom: 2px solid transparent; white-space:nowrap; font-weight:500; }
+  nav.tabs button.active{ color: var(--gold-soft); border-bottom-color: var(--gold); }
+  nav.tabs button:hover{ color: var(--text); }
+
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  .room-tabs{ display:flex; gap:6px; margin-bottom: 16px; flex-wrap: wrap; align-items:center; }
+  .room-tabs button{ background: var(--bg-card); border: 1px solid var(--line); color: var(--text-dim); padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; }
+  .room-tabs button.active{ background: var(--gold-dim); color: var(--gold-soft); border-color: var(--gold-dim); }
+  .room-tabs .spacer{ flex:1; }
+
+  .floor{ background: #0c0a08; border-radius: var(--radius); border: 1px solid var(--line); padding: 24px; position: relative; min-height: 460px; display: grid; gap: 8px; }
+  .table-btn{ border: 2px solid var(--line); background: var(--free); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; display:flex; align-items:center; justify-content:center; flex-direction:column; min-height: 48px; width:100%; height:100%; padding: 2px; }
+  .table-btn.round{ border-radius: 50%; }
+  .table-btn.diamond{ transform: rotate(45deg); }
+  .table-btn.diamond span{ transform: rotate(-45deg); display:block; }
+  .table-btn.seated{ background: var(--seated); border-color:#4a8f7f; }
+  .table-btn.reserved{ background: var(--reserved); border-color:#d49a3e; }
+  .table-btn .guest{ font-size: 9px; font-weight:400; margin-top:1px; max-width:56px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fixture{ background: #050403; border: 1px solid var(--line-soft); color: var(--text-faint); display:flex; align-items:center; justify-content:center; font-size: 10px; letter-spacing: 1px; text-align:center; padding: 4px; }
+  .legend{ display:flex; gap:18px; margin-top:16px; font-size:12px; color:var(--text-dim); flex-wrap:wrap; }
+  .legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+
+  .toolbar{ display:flex; gap:10px; margin-bottom: 16px; flex-wrap:wrap; align-items:center; }
+  .btn{ background: var(--gold-dim); color: var(--gold-soft); border:none; padding:10px 18px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; }
+  .btn.secondary{ background: var(--bg-card); border:1px solid var(--line); color: var(--text-dim); }
+  .btn.danger{ background:#3a1f1a; color:#e0938a; }
+  .btn.small{ padding:6px 12px; font-size:12px; }
+  input, select, textarea{ background: var(--bg-card); border:1px solid var(--line); color: var(--text); padding:9px 12px; border-radius:6px; font-size:13px; font-family:inherit; }
+  input:focus, select:focus, textarea:focus{ outline:1px solid var(--gold-dim); }
+
+  .card{ background: var(--bg-card); border:1px solid var(--line); border-radius: var(--radius); padding:16px; margin-bottom:10px; }
+  .row-flex{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
+  .item-name{ font-weight:600; font-size:15px; }
+  .item-meta{ font-size:12px; color: var(--text-faint); margin-top:3px; }
+  .item-list{ font-size:13px; color: var(--text-dim); margin-top:8px; line-height:1.5; }
+  .badge{ font-size:11px; font-weight:600; padding:4px 10px; border-radius:20px; white-space:nowrap; }
+  .badge.new{ background:#3a2f1a; color: var(--gold-soft); }
+  .badge.preparing{ background:#1a2e3a; color:#85bfe0; }
+  .badge.ready{ background:#1a3a2a; color:#7fdba0; }
+  .badge.done{ background:#262620; color: var(--text-faint); }
+  .badge.flag{ background:#3a1f1a; color:#e0938a; }
+  .badge.channel-voice{ background:#1a2e3a; color:#85bfe0; }
+  .badge.channel-manual{ background:#262620; color: var(--text-dim); }
+  .row-actions{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .row-actions button{ font-size:12px; padding:6px 12px; }
+  .empty{ text-align:center; padding:50px 20px; color: var(--text-faint); font-size:14px; }
+  .price{ color: var(--gold-soft); font-weight:600; }
+
+  .modal-bg{ position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:50; padding:20px; overflow-y:auto; }
+  .modal{ background: var(--bg-panel); border:1px solid var(--line); border-radius: var(--radius); padding:24px; width:100%; max-width:460px; max-height:88vh; overflow-y:auto; }
+  .modal h3{ margin:0 0 16px; font-size:17px; font-weight:600; color: var(--gold-soft); }
+  .field{ margin-bottom:12px; }
+  .field label{ display:block; font-size:12px; color: var(--text-dim); margin-bottom:5px; }
+  .field input, .field select, .field textarea{ width:100%; }
+  .modal-actions{ display:flex; gap:10px; margin-top:18px; }
+  .modal-actions button{ flex:1; }
+
+  .stats{ display:grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr)); gap:10px; margin-bottom:18px; }
+  .stat{ background: var(--bg-card); border:1px solid var(--line); border-radius: var(--radius); padding:14px; }
+  .stat .n{ font-size:24px; font-weight:700; color: var(--gold-soft); }
+  .stat .l{ font-size:11px; color: var(--text-faint); text-transform:uppercase; letter-spacing:0.5px; margin-top:2px; }
+
+  .msg-box{ background:#0c0a08; border:1px solid var(--line); border-radius:8px; padding:12px; font-size:13px; color: var(--text-dim); white-space:pre-wrap; margin-top:10px; line-height:1.6; }
+  .hint{ font-size:12px; color: var(--text-faint); margin-bottom: 12px; }
+  .edit-note{ background:#241d10; border:1px solid var(--gold-dim); color: var(--gold-soft); border-radius:8px; padding:10px 14px; font-size:12px; margin-bottom:14px; }
+
+  .item-picker-row{ display:flex; gap:6px; margin-bottom:8px; }
+  .item-picker-row input[list]{ flex:1; }
+  .item-picker-row input[type=number]{ width:60px; }
+  .order-lines{ background:#0c0a08; border:1px solid var(--line); border-radius:8px; padding:10px; margin-bottom:10px; }
+  .order-line{ display:flex; justify-content:space-between; font-size:13px; padding:4px 0; }
+  .order-line button{ background:none; border:none; color: var(--danger); cursor:pointer; font-size:12px; }
+  .order-total{ display:flex; justify-content:space-between; font-weight:700; font-size:14px; border-top:1px solid var(--line); padding-top:8px; margin-top:6px; color: var(--gold-soft); }
+
+  @media (max-width: 640px){
+    .table-btn{ font-size: 11px; }
+    .brand .sub{ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <span class="mark">du</span><span class="name" id="brandTitle">Liban — Operations</span>
+    <div class="langToggle">
+      <button id="lang-es" onclick="setLang('es')">ES</button>
+      <button id="lang-en" onclick="setLang('en')">EN</button>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button data-view="floor" class="active"></button>
+    <button data-view="orders"></button>
+    <button data-view="reservations"></button>
+    <button data-view="customers"></button>
+    <button data-view="marketing"></button>
+  </nav>
+</header>
+
+<div class="wrap">
+
+  <section id="view-floor" class="view active">
+    <div class="room-tabs" id="roomTabs">
+      <button data-room="room1" class="active">Sala 1</button>
+      <button data-room="room2">Sala 2</button>
+      <button data-room="room3">Sala 3</button>
+      <button data-room="vip">VIP</button>
+      <div class="spacer"></div>
+      <button class="btn small secondary" id="editModeBtn" onclick="toggleEditMode()"></button>
+    </div>
+    <div id="editNote" class="edit-note" style="display:none"></div>
+    <div class="floor" id="floorArea"></div>
+    <div class="legend" id="legend"></div>
+    <div class="toolbar" id="editToolbar" style="display:none; margin-top:14px">
+      <button class="btn small" id="addTableBtn" onclick="addTable()"></button>
+    </div>
+  </section>
+
+  <section id="view-orders" class="view">
+    <div class="stats" id="orderStats"></div>
+    <div class="toolbar">
+      <button class="btn" id="newOrderBtn" onclick="openOrderModal()"></button>
+      <select id="orderFilter" onchange="renderOrders()"></select>
+      <button class="btn secondary syncBtn" onclick="syncWithLive()" id="syncBtn1"></button>
+    </div>
+    <div id="ordersList"></div>
+  </section>
+
+  <section id="view-reservations" class="view">
+    <div class="toolbar">
+      <button class="btn" id="newResBtn" onclick="openReservationModal()"></button>
+      <button class="btn secondary syncBtn" onclick="syncWithLive()" id="syncBtn2"></button>
+    </div>
+    <div id="reservationsList"></div>
+  </section>
+
+  <section id="view-customers" class="view">
+    <div class="stats" id="customerStats"></div>
+    <div class="toolbar">
+      <button class="btn" id="newCustBtn" onclick="openCustomerModal()"></button>
+      <input type="text" id="customerSearch" oninput="renderCustomers()" style="flex:1; min-width:180px;">
+      <select id="customerFilter" onchange="renderCustomers()"></select>
+    </div>
+    <div id="customersList"></div>
+  </section>
+
+  <section id="view-marketing" class="view">
+    <div class="hint" id="marketingHint"></div>
+    <div class="toolbar">
+      <button class="btn" id="genCampaignBtn" onclick="renderCampaign()"></button>
+      <select id="campaignTemplate" onchange="renderCampaign()"></select>
+    </div>
+    <div id="campaignOutput"></div>
+    <div id="marketingList" style="margin-top:20px"></div>
+  </section>
+
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+/* ============ MENU DATA (with prices, for order totals) ============ */
+const MENU = [
+  {name:'Kafta Bil Jebneh', price:15},{name:'Lahme Bi Aajin', price:13},{name:'Manoucheh Jebneh', price:12},{name:'Zaatar & Labneh Manoucheh', price:12},
+  {name:'Fattoush', price:14},{name:'Tabbouleh', price:13},{name:'Salata Al Jarjir', price:12},{name:'Salata Al Rubyan', price:18},
+  {name:'Hummus', price:13},{name:'Hummus Bil Pesto', price:16},{name:'Moutabal', price:12},{name:'Warak Enab', price:14},
+  {name:'Muhammara', price:14},{name:'Ariche Bel Zaatar', price:15},{name:'Quinoa Ma Al Shamandar', price:14},
+  {name:'Hummus Lahme', price:17},{name:'Rass Assfour', price:22},{name:'Fatteh Al Rubyan', price:22},{name:'Fatteh Djaj', price:20},
+  {name:'Hallumi', price:17},{name:'Kebbeh Sajyeh', price:13},{name:'Hummus Falafel', price:16},{name:'Batata Mekliyeh', price:10},
+  {name:'Batata Harrah', price:13},{name:'Jawaneh Dajaj', price:17},{name:'Soujok', price:18},{name:'Rakakt Jebneh', price:13},
+  {name:'Okhtobut Bil Thoum', price:25},{name:'Taouk', price:23},{name:'Farrouj', price:26},{name:'Lahmeh Mshwieh', price:32},
+  {name:'Kabab', price:23},{name:'Mawzet Kharouf', price:35},{name:'Shawarma Lehme', price:26},{name:'Freekeh Djaj', price:27},
+  {name:'Okhtobut Mashwi', price:26},{name:'Samak Mashwi', price:58},{name:'Em Ali', price:15},{name:'Mafroukit Ashta', price:14},
+  {name:'Aish El Saraya', price:12},{name:'Knefeh', price:14},{name:'Mhalabieh', price:11},
+  {name:'Shisha (todos los sabores)', price:30},{name:'Recambio shisha', price:15},
+  {name:'Mojito', price:13},{name:'Margarita', price:13},{name:'Aperol Spritz', price:14},
+  {name:'Coca-Cola Zero', price:3.5},{name:'Agua Numen', price:5},{name:'Té Moruno', price:3.5}
+];
+
+/* ============ TRANSLATIONS ============ */
+const LANG = {
+  es: {
+    brandTitle: 'Liban — Operaciones', tabFloor:'Plano de sala', tabOrders:'Pedidos para llevar', tabRes:'Reservas', tabCust:'Clientes', tabMkt:'Marketing',
+    editTables:'Editar mesas', exitEdit:'Salir de edición',
+    editNote:'Modo edición: pulsa una mesa para renombrarla o eliminarla. Usa "+ Añadir mesa" para crear una nueva.',
+    addTable:'+ Añadir mesa', legendFree:'Libre', legendSeated:'Sentado', legendReserved:'Reservado',
+    newOrder:'+ Nuevo pedido', allStatus:'Todos los estados', stNew:'Nuevo', stPrep:'Preparando', stReady:'Listo', stDone:'Entregado',
+    statNew:'Nuevos', statPrep:'Preparando', statReady:'Listos', statTotal:'Pedidos hoy', statRevenue:'Ingresos hoy',
+    noOrders:'No hay pedidos. Pulsa "Nuevo pedido" para añadir uno.',
+    newRes:'+ Nueva reserva', noRes:'No hay reservas. Pulsa "Nueva reserva" para añadir una.',
+    newCust:'+ Nuevo cliente', searchPh:'Buscar por nombre o teléfono', allCust:'Todos', flaggedCust:'Necesitan contacto (30+ días)',
+    statTotalCust:'Clientes totales', statFlagged:'Necesitan contacto', noCust:'No hay clientes que coincidan. Se añaden automáticamente al crear un pedido o reserva.',
+    mktHint:'Clientes que no han vuelto en 30 días o más. Genera un mensaje personalizado, o una campaña para todos a la vez.',
+    genCampaign:'Generar mensaje de campaña', tplReengage:'Vuelve a visitarnos', tplBirthday:'Feliz cumpleaños', tplReview:'Pedir opinión / reseña',
+    noFlagged:'No hay clientes que necesiten contacto ahora mismo.', needContact:'Clientes que necesitan contacto',
+    edit:'Editar', advance:'Avanzar estado', delete:'Eliminar', draft:'Redactar mensaje', save:'Guardar', cancel:'Cancelar',
+    newOrderTitle:'Nuevo pedido para llevar', editOrderTitle:'Editar pedido', custName:'Nombre del cliente', phone:'Teléfono',
+    pickupTime:'Hora de recogida', items:'Artículos del pedido', addItem:'menú...', qty:'Cant.', addBtn:'Añadir', notes:'Notas (opcional)',
+    channel:'Canal', chManual:'Manual (añadido en el panel)', chVoice:'Llamada telefónica (IA)', chWhatsapp:'WhatsApp',
+    saveOrder:'Guardar pedido', total:'Total', newResTitle:'Nueva reserva', editResTitle:'Editar reserva',
+    date:'Fecha', time:'Hora', guests:'Comensales', table:'Mesa (opcional)', saveRes:'Guardar reserva',
+    newCustTitle:'Nuevo cliente', editCustTitle:'Editar cliente', email:'Email (opcional)', notesField:'Notas',
+    notesPh:'Preferencias, alergias...', saveCust:'Guardar', visits:'visita(s)', lastVisit:'última hace', days:'días', contact:'Contactar',
+    voiceCall:'📞 Llamada IA', manual:'📝 Manual', sendNote:'Copia cada mensaje y pégalo en WhatsApp o SMS. El envío automático requiere conectar un servicio de mensajería al backend.',
+    confirmDelOrder:'¿Eliminar este pedido?', confirmDelRes:'¿Eliminar esta reserva?', confirmDelCust:'¿Eliminar este cliente?',
+    requiredOrder:'Nombre y artículos son obligatorios', requiredRes:'Nombre, fecha y hora son obligatorios', requiredCust:'El nombre es obligatorio',
+    guestPrompt:'Nombre del cliente (opcional):', tableEditPrompt:'Escribe un nuevo número/nombre para renombrar,\no escribe "borrar" para eliminar esta mesa:',
+    newTablePrompt:'Número o nombre de la nueva mesa:', shapePrompt:'Forma: escribe "cuadrada", "redonda" o "diamante"',
+    sync:'🔄 Sincronizar con Railway', syncing:'Sincronizando...', syncError:'No se pudo conectar con Railway. Comprueba tu conexión.',
+    liveTag:'En vivo'
+  },
+  en: {
+    brandTitle: 'Liban — Operations', tabFloor:'Floor plan', tabOrders:'Pickup orders', tabRes:'Reservations', tabCust:'Customers', tabMkt:'Marketing',
+    editTables:'Edit tables', exitEdit:'Exit editing',
+    editNote:'Edit mode: tap a table to rename or delete it. Use "+ Add table" to create a new one.',
+    addTable:'+ Add table', legendFree:'Free', legendSeated:'Seated', legendReserved:'Reserved',
+    newOrder:'+ New order', allStatus:'All statuses', stNew:'New', stPrep:'Preparing', stReady:'Ready', stDone:'Completed',
+    statNew:'New', statPrep:'Preparing', statReady:'Ready', statTotal:'Orders today', statRevenue:'Revenue today',
+    noOrders:'No orders yet. Tap "New order" to add one.',
+    newRes:'+ New reservation', noRes:'No reservations yet. Tap "New reservation" to add one.',
+    newCust:'+ New customer', searchPh:'Search by name or phone', allCust:'All', flaggedCust:'Need contact (30+ days)',
+    statTotalCust:'Total customers', statFlagged:'Need contact', noCust:'No matching customers. They\'re added automatically when you create an order or reservation.',
+    mktHint:'Customers who haven\'t returned in 30+ days. Generate a personalized message, or a campaign for everyone at once.',
+    genCampaign:'Generate campaign message', tplReengage:'Come back and visit', tplBirthday:'Happy birthday', tplReview:'Ask for feedback / review',
+    noFlagged:'No customers need contact right now.', needContact:'Customers who need contact',
+    edit:'Edit', advance:'Advance status', delete:'Delete', draft:'Draft message', save:'Save', cancel:'Cancel',
+    newOrderTitle:'New pickup order', editOrderTitle:'Edit order', custName:'Customer name', phone:'Phone',
+    pickupTime:'Pickup time', items:'Order items', addItem:'menu item...', qty:'Qty', addBtn:'Add', notes:'Notes (optional)',
+    channel:'Channel', chManual:'Manual (added in dashboard)', chVoice:'Phone call (AI)', chWhatsapp:'WhatsApp',
+    saveOrder:'Save order', total:'Total', newResTitle:'New reservation', editResTitle:'Edit reservation',
+    date:'Date', time:'Time', guests:'Guests', table:'Table (optional)', saveRes:'Save reservation',
+    newCustTitle:'New customer', editCustTitle:'Edit customer', email:'Email (optional)', notesField:'Notes',
+    notesPh:'Preferences, allergies...', saveCust:'Save', visits:'visit(s)', lastVisit:'last visit', days:'days ago', contact:'Contact',
+    voiceCall:'📞 AI call', manual:'📝 Manual', sendNote:'Copy each message and paste it into WhatsApp or SMS. Automatic sending requires connecting a messaging service to the backend.',
+    confirmDelOrder:'Delete this order?', confirmDelRes:'Delete this reservation?', confirmDelCust:'Delete this customer?',
+    requiredOrder:'Name and items are required', requiredRes:'Name, date and time are required', requiredCust:'Name is required',
+    guestPrompt:'Guest name (optional):', tableEditPrompt:'Type a new number/name to rename,\nor type "delete" to remove this table:',
+    newTablePrompt:'Number or name for the new table:', shapePrompt:'Shape: type "square", "round" or "diamond"',
+    sync:'🔄 Sync with Railway', syncing:'Syncing...', syncError:'Could not connect to Railway. Check your connection.',
+    liveTag:'Live'
+  }
+};
+let currentLang = 'es';
+function t(key){ return LANG[currentLang][key] || key; }
+
+async function setLang(l){
+  currentLang = l;
+  await saveKey('duliban-lang', l);
+  applyStaticText();
+  renderFloor(); renderOrders(); renderReservations(); renderCustomers();
+  if(document.getElementById('view-marketing').classList.contains('active')) renderMarketing();
+}
+
+function applyStaticText(){
+  document.getElementById('lang-es').classList.toggle('active', currentLang==='es');
+  document.getElementById('lang-en').classList.toggle('active', currentLang==='en');
+  document.getElementById('brandTitle').textContent = t('brandTitle');
+  document.querySelector('[data-view="floor"]').textContent = t('tabFloor');
+  document.querySelector('[data-view="orders"]').textContent = t('tabOrders');
+  document.querySelector('[data-view="reservations"]').textContent = t('tabRes');
+  document.querySelector('[data-view="customers"]').textContent = t('tabCust');
+  document.querySelector('[data-view="marketing"]').textContent = t('tabMkt');
+  document.getElementById('editModeBtn').textContent = editMode ? t('exitEdit') : t('editTables');
+  document.getElementById('editNote').textContent = t('editNote');
+  document.getElementById('addTableBtn').textContent = t('addTable');
+  document.getElementById('legend').innerHTML = `<span><span class="dot" style="background:var(--free)"></span>${t('legendFree')}</span><span><span class="dot" style="background:var(--seated)"></span>${t('legendSeated')}</span><span><span class="dot" style="background:var(--reserved)"></span>${t('legendReserved')}</span>`;
+  document.getElementById('newOrderBtn').textContent = t('newOrder');
+  document.getElementById('orderFilter').innerHTML = `<option value="all">${t('allStatus')}</option><option value="new">${t('stNew')}</option><option value="preparing">${t('stPrep')}</option><option value="ready">${t('stReady')}</option><option value="done">${t('stDone')}</option>`;
+  document.getElementById('newResBtn').textContent = t('newRes');
+  document.querySelectorAll('.syncBtn').forEach(b=> b.textContent = t('sync'));
+  document.getElementById('newCustBtn').textContent = t('newCust');
+  document.getElementById('customerSearch').placeholder = t('searchPh');
+  document.getElementById('customerFilter').innerHTML = `<option value="all">${t('allCust')}</option><option value="flagged">${t('flaggedCust')}</option>`;
+  document.getElementById('marketingHint').textContent = t('mktHint');
+  document.getElementById('genCampaignBtn').textContent = t('genCampaign');
+  document.getElementById('campaignTemplate').innerHTML = `<option value="reengage">${t('tplReengage')}</option><option value="birthday">${t('tplBirthday')}</option><option value="review">${t('tplReview')}</option>`;
+}
+
+/* ============ LIVE RAILWAY SYNC ============ */
+const RAILWAY_URL = 'https://web-production-578f0.up.railway.app';
+
+function parseSheetTimestamp(ts){
+  if(!ts) return new Date().toISOString();
+  const iso = ts.replace(' ', 'T') + ':00';
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+}
+function mapOrderStatus(s){
+  const m = { 'PENDING':'new', 'PREPARING':'preparing', 'READY':'ready', 'DONE':'done', 'COMPLETED':'done' };
+  return m[String(s||'').toUpperCase()] || 'new';
+}
+
+async function syncWithLive(){
+  const btns = document.querySelectorAll('.syncBtn');
+  btns.forEach(b=> b.textContent = t('syncing'));
+  try{
+    const [ordersRes, resRes, tablesRes, custRes] = await Promise.all([
+      fetch(RAILWAY_URL + '/get-orders').then(r=>r.json()).catch(()=>({orders:[]})),
+      fetch(RAILWAY_URL + '/get-reservations').then(r=>r.json()).catch(()=>({reservations:[]})),
+      fetch(RAILWAY_URL + '/get-tables').then(r=>r.json()).catch(()=>({tables:[]})),
+      fetch(RAILWAY_URL + '/get-customers').then(r=>r.json()).catch(()=>({customers:[]}))
+    ]);
+
+    const liveOrders = (ordersRes.orders || []).map((r, idx) => ({
+      id: 'live_ord_' + idx,
+      name: r.Name || r.name || '',
+      phone: r.Phone || r.phone || '',
+      time: r.PickupTime || r.pickup_time || '',
+      items: r.Items || r.items || '',
+      notes: r.Notes || '',
+      channel: r.Channel || 'Voice',
+      total: parseFloat(r.Total || r.total || 0) || 0,
+      status: mapOrderStatus(r.Status),
+      createdAt: parseSheetTimestamp(r.Timestamp),
+      live: true
+    }));
+    orders = [...liveOrders, ...orders.filter(o=>!o.live)];
+
+    const liveRes = (resRes.reservations || []).map((r, idx) => ({
+      id: 'live_res_' + idx,
+      name: r.Name || r.name || '',
+      phone: r.Phone || r.phone || '',
+      date: r.Date || r.date || '',
+      time: r.Time || r.time || '',
+      guests: r.Guests || r.guests || '',
+      table: '',
+      channel: (r.Channel || 'Voice'),
+      status: r.Status || 'confirmed',
+      live: true
+    }));
+    reservations = [...liveRes, ...reservations.filter(r=>!r.live)];
+
+    (tablesRes.tables || []).forEach(r => {
+      const tid = String(r.TableID || '');
+      if(!tid) return;
+      tableStatus[tid] = r.Status || 'free';
+      if(r.GuestName) tableStatus[tid+'_name'] = r.GuestName;
+    });
+
+    const liveCustomers = (custRes.customers || []).map((r, idx) => ({
+      id: 'live_cust_' + idx,
+      name: r.Name || '',
+      phone: r.Phone || '',
+      email: r.Email || '',
+      notes: r.Notes || '',
+      visits: parseInt(r.Visits || 1) || 1,
+      lastVisit: r.LastVisit ? parseSheetTimestamp(r.LastVisit) : new Date().toISOString(),
+      live: true
+    }));
+    customers = [...liveCustomers, ...customers.filter(c=>!c.live)];
+
+    renderOrders();
+    renderReservations();
+    renderFloor();
+    renderCustomers();
+  } catch(e){
+    console.error('sync error', e);
+    alert(t('syncError'));
+  }
+  btns.forEach(b=> b.textContent = t('sync'));
+}
+
+/* ============ STORAGE ============ */
+async function loadKey(key, fallback){
+  try{ const res = await window.storage.get(key, true); return res ? JSON.parse(res.value) : fallback; }
+  catch(e){ return fallback; }
+}
+async function saveKey(key, value){
+  try{ await window.storage.set(key, JSON.stringify(value), true); }
+  catch(e){ console.error('storage error', e); }
+}
+
+let tableStatus = {};
+let tableLayout = null;
+let orders = [];
+let customers = [];
+let reservations = [];
+let editMode = false;
+let currentOrderLines = [];
+
+function defaultLayout(){
+  return {
+    room1: { cols:12, rows:6,
+      fixtures: [{label:'BARRA', col:'1 / 2', row:'1 / 6'},{label:'ENTRADA', col:'6 / 9', row:'6 / 7'}],
+      tables: [
+        {id:'18',shape:'sq',col:'3',row:'1'},{id:'17',shape:'sq',col:'4',row:'1'},{id:'16',shape:'sq',col:'5',row:'1'},{id:'15',shape:'sq',col:'6',row:'1'},
+        {id:'14',shape:'sq',col:'8',row:'1'},{id:'13',shape:'sq',col:'9',row:'1'},{id:'12',shape:'sq',col:'10',row:'1'},{id:'11',shape:'sq',col:'11',row:'1'},{id:'10',shape:'sq',col:'12',row:'1'},
+        {id:'19',shape:'sq',col:'3',row:'3'},{id:'20',shape:'sq',col:'3',row:'4'},
+        {id:'21',shape:'round',col:'5 / 7',row:'4 / 6'},{id:'1',shape:'round',col:'9 / 11',row:'4 / 6'}
+      ]},
+    room2: { cols:12, rows:5,
+      fixtures: [{label:'SALIDA', col:'2 / 5', row:'1 / 2'},{label:'ENTRADA', col:'1 / 2', row:'2 / 5'}],
+      tables: [
+        {id:'41',shape:'diamond',col:'3',row:'2'},{id:'40',shape:'diamond',col:'5',row:'2'},{id:'39',shape:'diamond',col:'7',row:'2'},
+        {id:'38',shape:'sq',col:'12',row:'1'},{id:'37',shape:'sq',col:'12',row:'2'},{id:'36',shape:'sq',col:'12',row:'3'},{id:'35',shape:'sq',col:'12',row:'4'},{id:'34',shape:'sq',col:'12',row:'5'},
+        {id:'30',shape:'round',col:'2',row:'4'},{id:'31',shape:'sq',col:'3',row:'4'},{id:'32',shape:'sq',col:'4',row:'4'},{id:'33',shape:'sq',col:'5',row:'4'}
+      ]},
+    room3: { cols:12, rows:5,
+      fixtures: [{label:'ENTRADA', col:'2 / 4', row:'5 / 6'}],
+      tables: [
+        {id:'56',shape:'sq',col:'2',row:'1'},{id:'54',shape:'sq',col:'5',row:'1'},{id:'53',shape:'sq',col:'7',row:'1'},{id:'67',shape:'sq',col:'10',row:'1'},{id:'65',shape:'sq',col:'11',row:'1'},
+        {id:'57',shape:'sq',col:'2',row:'2'},{id:'58',shape:'sq',col:'2',row:'3'},
+        {id:'64',shape:'round',col:'5',row:'2'},{id:'63',shape:'round',col:'7',row:'2'},{id:'66',shape:'sq',col:'12',row:'2 / 4'},
+        {id:'62',shape:'round',col:'8',row:'3'},{id:'61',shape:'round',col:'6',row:'3'},
+        {id:'60',shape:'sq',col:'3',row:'4'},{id:'50',shape:'sq',col:'5',row:'4'},{id:'51',shape:'diamond',col:'7',row:'4'},{id:'52',shape:'diamond',col:'8',row:'4'}
+      ]},
+    vip: { cols:6, rows:3,
+      fixtures: [],
+      tables: [
+        {id:'9',shape:'sq',col:'1',row:'1'},{id:'8',shape:'sq',col:'2',row:'1'},{id:'7',shape:'sq',col:'3',row:'1'},{id:'6',shape:'sq',col:'4',row:'1 / 3'},
+        {id:'2',shape:'sq',col:'1',row:'3'},{id:'3',shape:'sq',col:'2',row:'3'},{id:'4',shape:'sq',col:'3',row:'3'},{id:'5',shape:'sq',col:'4',row:'3'}
+      ]}
+  };
+}
+let currentRoom = 'room1';
+function cycleStatus(s){ if(s==='free'||!s) return 'seated'; if(s==='seated') return 'reserved'; return 'free'; }
+
+function renderFloor(){
+  document.querySelectorAll('#roomTabs button[data-room]').forEach(b=> b.classList.toggle('active', b.dataset.room===currentRoom));
+  const area = document.getElementById('floorArea');
+  const room = tableLayout[currentRoom];
+  area.style.gridTemplateColumns = `repeat(${room.cols}, 1fr)`;
+  area.style.gridTemplateRows = `repeat(${room.rows}, 64px)`;
+  let html = '';
+  room.fixtures.forEach(f=> html += `<div class="fixture" style="grid-column:${f.col}; grid-row:${f.row}">${f.label}</div>`);
+  room.tables.forEach(tb=>{
+    const status = tableStatus[tb.id] || 'free';
+    const shapeClass = tb.shape==='round'?'round':(tb.shape==='diamond'?'diamond':'');
+    const guestName = tableStatus[tb.id+'_name'] || '';
+    const clickFn = editMode ? `editTable('${tb.id}')` : `toggleTable('${tb.id}')`;
+    html += `<button class="table-btn ${shapeClass} ${status}" style="grid-column:${tb.col}; grid-row:${tb.row}" onclick="${clickFn}"><span>${tb.id}${guestName?`<div class="guest">${guestName}</div>`:''}</span></button>`;
+  });
+  area.innerHTML = html;
+}
+async function toggleTable(id){
+  const cur = tableStatus[id] || 'free';
+  let newStatus, guestName = '';
+  if(cur==='free'){
+    const name = prompt(t('guestPrompt'));
+    newStatus = 'seated';
+    tableStatus[id] = 'seated';
+    if(name){ tableStatus[id+'_name'] = name; guestName = name; }
+  } else {
+    newStatus = cycleStatus(cur);
+    tableStatus[id] = newStatus;
+    if(newStatus==='free') delete tableStatus[id+'_name'];
+    else guestName = tableStatus[id+'_name'] || '';
+  }
+  await saveKey('duliban-table-status', tableStatus);
+  renderFloor();
+  try{
+    await fetch(RAILWAY_URL + '/update-table', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ table_id: id, room: currentRoom, status: newStatus, guest_name: guestName })
+    });
+  } catch(e){ console.error('table sync error', e); }
+}
+function toggleEditMode(){
+  editMode = !editMode;
+  document.getElementById('editModeBtn').textContent = editMode ? t('exitEdit') : t('editTables');
+  document.getElementById('editNote').style.display = editMode ? 'block' : 'none';
+  document.getElementById('editToolbar').style.display = editMode ? 'flex' : 'none';
+  renderFloor();
+}
+async function editTable(id){
+  const action = prompt(`${t('tableEditPrompt')}`, id);
+  if(action===null) return;
+  const room = tableLayout[currentRoom];
+  if(action.trim().toLowerCase()==='borrar' || action.trim().toLowerCase()==='delete'){
+    room.tables = room.tables.filter(x=>x.id!==id);
+  } else if(action.trim() && action.trim()!==id){
+    const tb = room.tables.find(x=>x.id===id);
+    if(tb) tb.id = action.trim();
+  }
+  await saveKey('duliban-table-layout', tableLayout);
+  renderFloor();
+}
+async function addTable(){
+  const id = prompt(t('newTablePrompt'));
+  if(!id) return;
+  const room = tableLayout[currentRoom];
+  const shape = prompt(t('shapePrompt'), 'cuadrada') || 'cuadrada';
+  const shapeMap = {'cuadrada':'sq','square':'sq','redonda':'round','round':'round','diamante':'diamond','diamond':'diamond'};
+  const nextCol = (room.tables.length % room.cols) + 1;
+  const nextRow = Math.floor(room.tables.length / room.cols) + 1;
+  room.tables.push({ id:id.trim(), shape: shapeMap[shape.toLowerCase()]||'sq', col:String(nextCol), row:String(nextRow) });
+  await saveKey('duliban-table-layout', tableLayout);
+  renderFloor();
+}
+document.getElementById('roomTabs').addEventListener('click', e=>{
+  const btn = e.target.closest('button[data-room]');
+  if(!btn) return;
+  currentRoom = btn.dataset.room;
+  renderFloor();
+});
+document.getElementById('tabs').addEventListener('click', e=>{
+  const btn = e.target.closest('button[data-view]');
+  if(!btn) return;
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+btn.dataset.view).classList.add('active');
+  if(btn.dataset.view==='marketing') renderMarketing();
+});
+
+/* ============ ORDERS (with priced line items) ============ */
+function menuDatalist(){
+  return `<datalist id="menuList">${MENU.map(m=>`<option value="${m.name}">`).join('')}</datalist>`;
+}
+function findMenuItem(name){ return MENU.find(m=>m.name.toLowerCase()===name.trim().toLowerCase()); }
+
+function openOrderModal(existing){
+  const o = existing || {};
+  currentOrderLines = (o.lines || []).slice();
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+  <div class="modal-bg" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <h3>${existing ? t('editOrderTitle') : t('newOrderTitle')}</h3>
+      <input type="hidden" id="o_id" value="${o.id||''}">
+      <div class="field"><label>${t('custName')}</label><input id="o_name" type="text" value="${o.name||''}"></div>
+      <div class="field"><label>${t('phone')}</label><input id="o_phone" type="text" value="${o.phone||''}"></div>
+      <div class="field"><label>${t('pickupTime')}</label><input id="o_time" type="time" value="${o.time||''}"></div>
+      <div class="field">
+        <label>${t('items')}</label>
+        ${menuDatalist()}
+        <div class="item-picker-row">
+          <input id="o_itemPick" list="menuList" placeholder="${t('addItem')}">
+          <input id="o_itemQty" type="number" min="1" value="1">
+          <button class="btn small" type="button" onclick="addOrderLine()">${t('addBtn')}</button>
+        </div>
+        <div class="order-lines" id="orderLinesBox"></div>
+      </div>
+      <div class="field"><label>${t('notes')}</label><input id="o_notes" type="text" value="${o.notes||''}"></div>
+      <div class="field"><label>${t('channel')}</label>
+        <select id="o_channel">
+          <option value="Manual" ${o.channel==='Manual'?'selected':''}>${t('chManual')}</option>
+          <option value="Voice" ${o.channel==='Voice'?'selected':''}>${t('chVoice')}</option>
+          <option value="WhatsApp" ${o.channel==='WhatsApp'?'selected':''}>${t('chWhatsapp')}</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn secondary" onclick="closeModal()">${t('cancel')}</button>
+        <button class="btn" onclick="saveOrder()">${t('saveOrder')}</button>
+      </div>
+    </div>
+  </div>`;
+  renderOrderLines();
+}
+function renderOrderLines(){
+  const box = document.getElementById('orderLinesBox');
+  if(!box) return;
+  let total = 0;
+  box.innerHTML = currentOrderLines.map((l,i)=>{
+    const lineTotal = l.price * l.qty;
+    total += lineTotal;
+    return `<div class="order-line"><span>${l.qty}x ${l.name}</span><span>€${lineTotal.toFixed(2)} <button onclick="removeOrderLine(${i})">✕</button></span></div>`;
+  }).join('') + `<div class="order-total"><span>${t('total')}</span><span>€${total.toFixed(2)}</span></div>`;
+}
+function addOrderLine(){
+  const name = document.getElementById('o_itemPick').value.trim();
+  const qty = parseInt(document.getElementById('o_itemQty').value) || 1;
+  if(!name) return;
+  const menuItem = findMenuItem(name);
+  currentOrderLines.push({ name, qty, price: menuItem ? menuItem.price : 0 });
+  document.getElementById('o_itemPick').value = '';
+  document.getElementById('o_itemQty').value = 1;
+  renderOrderLines();
+}
+function removeOrderLine(i){ currentOrderLines.splice(i,1); renderOrderLines(); }
+
+function closeModal(){ document.getElementById('modalRoot').innerHTML = ''; }
+
+async function saveOrder(){
+  const id = document.getElementById('o_id').value;
+  const name = document.getElementById('o_name').value.trim();
+  const phone = document.getElementById('o_phone').value.trim();
+  const time = document.getElementById('o_time').value;
+  const notes = document.getElementById('o_notes').value.trim();
+  const channel = document.getElementById('o_channel').value;
+  const lines = currentOrderLines.slice();
+  const total = lines.reduce((s,l)=> s + l.price*l.qty, 0);
+  const itemsText = lines.map(l=>`${l.qty}x ${l.name}`).join(', ');
+  if(!name || lines.length===0){ alert(t('requiredOrder')); return; }
+  if(id){
+    const o = orders.find(x=>x.id===id);
+    Object.assign(o, {name, phone, time, notes, channel, lines, total, items: itemsText});
+    await saveKey('duliban-orders', orders);
+  } else {
+    orders.unshift({ id:'ord_'+Date.now(), name, phone, time, notes, channel, lines, total, items: itemsText, status:'new', createdAt: new Date().toISOString() });
+    await saveKey('duliban-orders', orders);
+    try{
+      await fetch(RAILWAY_URL + '/save-dashboard-order', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ name, phone, time, notes, channel, lines })
+      });
+      syncWithLive();
+    } catch(e){ console.error('order save error', e); }
+  }
+  closeModal();
+  renderOrders();
+}
+async function touchCustomer(name, phone){
+  let c = customers.find(c => phone && c.phone === phone);
+  if(!c){ c = { id:'cust_'+Date.now(), name, phone, visits:1, lastVisit: new Date().toISOString(), notes:'' }; customers.unshift(c); }
+  else { c.visits = (c.visits||0)+1; c.lastVisit = new Date().toISOString(); }
+  await saveKey('duliban-customers', customers);
+}
+const statusOrderList = ['new','preparing','ready','done'];
+async function advanceOrder(id){
+  const o = orders.find(x=>x.id===id);
+  if(!o) return;
+  o.status = statusOrderList[(statusOrderList.indexOf(o.status)+1) % statusOrderList.length];
+  await saveKey('duliban-orders', orders);
+  renderOrders();
+}
+async function deleteOrder(id){
+  if(!confirm(t('confirmDelOrder'))) return;
+  orders = orders.filter(x=>x.id!==id);
+  await saveKey('duliban-orders', orders);
+  renderOrders();
+}
+function isToday(iso){
+  if(!iso) return false;
+  const d = new Date(iso), n = new Date();
+  return d.getFullYear()===n.getFullYear() && d.getMonth()===n.getMonth() && d.getDate()===n.getDate();
+}
+function renderOrders(){
+  const filter = document.getElementById('orderFilter').value || 'all';
+  const list = document.getElementById('ordersList');
+  const stats = document.getElementById('orderStats');
+  const statusLabelMap = { new:t('stNew'), preparing:t('stPrep'), ready:t('stReady'), done:t('stDone') };
+  const counts = { new:0, preparing:0, ready:0, done:0 };
+  let todayCount = 0, todayRevenue = 0;
+  orders.forEach(o=>{
+    counts[o.status] = (counts[o.status]||0)+1;
+    if(isToday(o.createdAt)){ todayCount++; todayRevenue += (o.total||0); }
+  });
+  stats.innerHTML = `
+    <div class="stat"><div class="n">${counts.new}</div><div class="l">${t('statNew')}</div></div>
+    <div class="stat"><div class="n">${counts.preparing}</div><div class="l">${t('statPrep')}</div></div>
+    <div class="stat"><div class="n">${counts.ready}</div><div class="l">${t('statReady')}</div></div>
+    <div class="stat"><div class="n">${todayCount}</div><div class="l">${t('statTotal')}</div></div>
+    <div class="stat"><div class="n">€${todayRevenue.toFixed(2)}</div><div class="l">${t('statRevenue')}</div></div>`;
+  const shown = filter==='all' ? orders : orders.filter(o=>o.status===filter);
+  if(shown.length===0){ list.innerHTML = `<div class="empty">${t('noOrders')}</div>`; return; }
+  list.innerHTML = shown.map(o => `
+    <div class="card">
+      <div class="row-flex">
+        <div>
+          <div class="item-name">${o.name}</div>
+          <div class="item-meta">${o.phone || '—'}${o.time ? ' · '+o.time : ''}</div>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end">
+          <span class="badge channel-${(o.channel||'Manual').toLowerCase()}">${o.channel==='Voice'?t('voiceCall'):o.channel==='WhatsApp'?'WhatsApp':t('manual')}${o.live?' · '+t('liveTag'):''}</span>
+          <span class="badge ${o.status}">${statusLabelMap[o.status]}</span>
+        </div>
+      </div>
+      <div class="item-list">${o.items||''}</div>
+      <div class="item-meta price" style="margin-top:6px">${t('total')}: €${(o.total||0).toFixed(2)}</div>
+      ${o.notes ? `<div class="item-meta" style="margin-top:4px">${o.notes}</div>` : ''}
+      <div class="row-actions">
+        <button class="btn secondary" onclick='openOrderModal(${JSON.stringify(o).replace(/'/g,"&apos;")})'>${t('edit')}</button>
+        <button class="btn secondary" onclick="advanceOrder('${o.id}')">${t('advance')}</button>
+        <button class="btn danger" onclick="deleteOrder('${o.id}')">${t('delete')}</button>
+      </div>
+    </div>`).join('');
+}
+
+/* ============ RESERVATIONS ============ */
+function openReservationModal(existing){
+  const r = existing || {};
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+  <div class="modal-bg" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <h3>${existing ? t('editResTitle') : t('newResTitle')}</h3>
+      <input type="hidden" id="r_id" value="${r.id||''}">
+      <div class="field"><label>${t('custName')}</label><input id="r_name" type="text" value="${r.name||''}"></div>
+      <div class="field"><label>${t('phone')}</label><input id="r_phone" type="text" value="${r.phone||''}"></div>
+      <div class="field"><label>${t('date')}</label><input id="r_date" type="date" value="${r.date||''}"></div>
+      <div class="field"><label>${t('time')}</label><input id="r_time" type="time" value="${r.time||''}"></div>
+      <div class="field"><label>${t('guests')}</label><input id="r_guests" type="number" min="1" value="${r.guests||2}"></div>
+      <div class="field"><label>${t('table')}</label><input id="r_table" type="text" value="${r.table||''}"></div>
+      <div class="field"><label>${t('channel')}</label>
+        <select id="r_channel">
+          <option value="Manual" ${r.channel==='Manual'?'selected':''}>${t('chManual')}</option>
+          <option value="Voice" ${r.channel==='Voice'?'selected':''}>${t('chVoice')}</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn secondary" onclick="closeModal()">${t('cancel')}</button>
+        <button class="btn" onclick="saveReservation()">${t('saveRes')}</button>
+      </div>
+    </div>
+  </div>`;
+}
+async function saveReservation(){
+  const id = document.getElementById('r_id').value;
+  const name = document.getElementById('r_name').value.trim();
+  const phone = document.getElementById('r_phone').value.trim();
+  const date = document.getElementById('r_date').value;
+  const time = document.getElementById('r_time').value;
+  const guests = document.getElementById('r_guests').value;
+  const table = document.getElementById('r_table').value.trim();
+  const channel = document.getElementById('r_channel').value;
+  if(!name || !date || !time){ alert(t('requiredRes')); return; }
+  if(id){
+    const r = reservations.find(x=>x.id===id);
+    Object.assign(r, {name, phone, date, time, guests, table, channel});
+    await saveKey('duliban-reservations', reservations);
+  } else {
+    reservations.unshift({ id:'res_'+Date.now(), name, phone, date, time, guests, table, channel, status:'confirmed' });
+    await saveKey('duliban-reservations', reservations);
+    try{
+      const parts = date.split('-');
+      const ddmmyyyy = parts.length===3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : date;
+      await fetch(RAILWAY_URL + '/voice-reservation', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ name, phone, date: ddmmyyyy, time, guests, notes: table ? ('Mesa '+table) : '', channel })
+      });
+      syncWithLive();
+    } catch(e){ console.error('reservation save error', e); }
+  }
+  closeModal();
+  renderReservations();
+}
+async function deleteReservation(id){
+  if(!confirm(t('confirmDelRes'))) return;
+  reservations = reservations.filter(r=>r.id!==id);
+  await saveKey('duliban-reservations', reservations);
+  renderReservations();
+}
+function renderReservations(){
+  const list = document.getElementById('reservationsList');
+  const sorted = [...reservations].sort((a,b)=> (a.date+a.time).localeCompare(b.date+b.time));
+  if(sorted.length===0){ list.innerHTML = `<div class="empty">${t('noRes')}</div>`; return; }
+  list.innerHTML = sorted.map(r => `
+    <div class="card">
+      <div class="row-flex">
+        <div>
+          <div class="item-name">${r.name}</div>
+          <div class="item-meta">${r.date} · ${r.time} · ${r.guests} ${t('guests').toLowerCase()}${r.table ? ' · '+t('table').split(' ')[0]+' '+r.table : ''}</div>
+        </div>
+        <span class="badge channel-${(r.channel||'Manual').toLowerCase()}">${r.channel==='Voice'?t('voiceCall'):t('manual')}</span>
+      </div>
+      <div class="row-actions">
+        <button class="btn secondary" onclick='openReservationModal(${JSON.stringify(r).replace(/'/g,"&apos;")})'>${t('edit')}</button>
+        <button class="btn danger" onclick="deleteReservation('${r.id}')">${t('delete')}</button>
+      </div>
+    </div>`).join('');
+}
+
+/* ============ CUSTOMERS ============ */
+function daysSince(iso){ if(!iso) return 9999; return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000); }
+function openCustomerModal(existing){
+  const c = existing || {};
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+  <div class="modal-bg" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <h3>${existing ? t('editCustTitle') : t('newCustTitle')}</h3>
+      <input type="hidden" id="c_id" value="${c.id||''}">
+      <div class="field"><label>${t('custName')}</label><input id="c_name" type="text" value="${c.name||''}"></div>
+      <div class="field"><label>${t('phone')}</label><input id="c_phone" type="text" value="${c.phone||''}"></div>
+      <div class="field"><label>${t('email')}</label><input id="c_email" type="text" value="${c.email||''}"></div>
+      <div class="field"><label>${t('notesField')}</label><input id="c_notes" type="text" value="${c.notes||''}" placeholder="${t('notesPh')}"></div>
+      <div class="modal-actions">
+        <button class="btn secondary" onclick="closeModal()">${t('cancel')}</button>
+        <button class="btn" onclick="saveCustomer()">${t('saveCust')}</button>
+      </div>
+    </div>
+  </div>`;
+}
+async function saveCustomer(){
+  const id = document.getElementById('c_id').value;
+  const name = document.getElementById('c_name').value.trim();
+  const phone = document.getElementById('c_phone').value.trim();
+  const email = document.getElementById('c_email').value.trim();
+  const notes = document.getElementById('c_notes').value.trim();
+  if(!name){ alert(t('requiredCust')); return; }
+  if(id){
+    const c = customers.find(x=>x.id===id);
+    Object.assign(c, {name, phone, email, notes});
+    await saveKey('duliban-customers', customers);
+  } else {
+    customers.unshift({ id:'cust_'+Date.now(), name, phone, email, notes, visits:1, lastVisit: new Date().toISOString() });
+    await saveKey('duliban-customers', customers);
+    try{
+      await fetch(RAILWAY_URL + '/save-customer', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ name, phone, email, notes })
+      });
+    } catch(e){ console.error('customer save error', e); }
+  }
+  closeModal();
+  renderCustomers();
+}
+async function deleteCustomer(id){
+  if(!confirm(t('confirmDelCust'))) return;
+  customers = customers.filter(c=>c.id!==id);
+  await saveKey('duliban-customers', customers);
+  renderCustomers();
+}
+function draftMessage(id){
+  const c = customers.find(x=>x.id===id);
+  if(!c) return;
+  const msg = templates.reengage(c.name);
+  const box = document.getElementById('msg_'+id);
+  box.style.display = box.style.display==='none' ? 'block' : 'none';
+  box.innerText = msg;
+}
+function renderCustomers(){
+  const search = document.getElementById('customerSearch').value.toLowerCase();
+  const filter = document.getElementById('customerFilter').value || 'all';
+  const list = document.getElementById('customersList');
+  const stats = document.getElementById('customerStats');
+  const flagged = customers.filter(c => daysSince(c.lastVisit) >= 30);
+  stats.innerHTML = `
+    <div class="stat"><div class="n">${customers.length}</div><div class="l">${t('statTotalCust')}</div></div>
+    <div class="stat"><div class="n">${flagged.length}</div><div class="l">${t('statFlagged')}</div></div>`;
+  let shown = customers;
+  if(filter==='flagged') shown = flagged;
+  if(search) shown = shown.filter(c => c.name.toLowerCase().includes(search) || (c.phone||'').includes(search));
+  if(shown.length===0){ list.innerHTML = `<div class="empty">${t('noCust')}</div>`; return; }
+  list.innerHTML = shown.map(c => {
+    const d = daysSince(c.lastVisit);
+    const isFlagged = d >= 30;
+    return `
+    <div class="card">
+      <div class="row-flex">
+        <div>
+          <div class="item-name">${c.name}</div>
+          <div class="item-meta">${c.phone||'—'}${c.email?' · '+c.email:''} · ${c.visits||1} ${t('visits')} · ${t('lastVisit')} ${d===9999?'—':d+' '+t('days')}</div>
+        </div>
+        ${isFlagged ? `<span class="badge flag">${t('contact')}</span>` : ''}
+      </div>
+      ${c.notes ? `<div class="item-list">${c.notes}</div>` : ''}
+      <div class="row-actions">
+        <button class="btn secondary" onclick='openCustomerModal(${JSON.stringify(c).replace(/'/g,"&apos;")})'>${t('edit')}</button>
+        <button class="btn secondary" onclick="draftMessage('${c.id}')">${t('draft')}</button>
+        <button class="btn danger" onclick="deleteCustomer('${c.id}')">${t('delete')}</button>
+      </div>
+      <div class="msg-box" id="msg_${c.id}" style="display:none"></div>
+    </div>`;
+  }).join('');
+}
+
+/* ============ MARKETING ============ */
+const templates = {
+  reengage: (name) => `Hola ${name}! Somos Du Liban 😊 Hace tiempo que no te vemos y nos encantaría recibirte de nuevo. ¿Te apetece pasarte esta semana? Un saludo del equipo de Du Liban.`,
+  birthday: (name) => `¡Feliz cumpleaños, ${name}! 🎉 De parte de todo el equipo de Du Liban, nos encantaría celebrarlo contigo. Ven a visitarnos y te invitamos a un postre.`,
+  review: (name) => `Hola ${name}, gracias por tu visita a Du Liban. Nos encantaría conocer tu opinión: ¿nos dejarías una reseña? Significa mucho para nosotros.`
+};
+function renderCampaign(){
+  const tpl = document.getElementById('campaignTemplate').value || 'reengage';
+  const flagged = customers.filter(c => daysSince(c.lastVisit) >= 30 && c.phone);
+  const out = document.getElementById('campaignOutput');
+  if(flagged.length===0){ out.innerHTML = `<div class="empty">${t('noFlagged')}</div>`; return; }
+  const combined = flagged.map(c => `— ${c.name} (${c.phone}) —\n${templates[tpl](c.name)}`).join('\n\n');
+  out.innerHTML = `<div class="msg-box" style="display:block">${combined}</div><div class="hint" style="margin-top:8px">${t('sendNote')}</div>`;
+}
+function renderMarketing(){
+  const flagged = customers.filter(c => daysSince(c.lastVisit) >= 30);
+  const list = document.getElementById('marketingList');
+  if(flagged.length===0){ list.innerHTML = `<div class="empty">${t('noFlagged')}</div>`; return; }
+  list.innerHTML = `<div class="item-name" style="margin-bottom:10px">${t('needContact')}</div>` + flagged.map(c => `
+    <div class="card">
+      <div class="row-flex">
+        <div>
+          <div class="item-name">${c.name}</div>
+          <div class="item-meta">${c.phone||'—'} · ${t('lastVisit')} ${daysSince(c.lastVisit)} ${t('days')}</div>
+        </div>
+        <button class="btn small secondary" onclick="draftMessage('${c.id}')">${t('draft')}</button>
+      </div>
+      <div class="msg-box" id="msg_${c.id}" style="display:none"></div>
+    </div>`).join('');
+}
+
+/* ============ INIT ============ */
+async function init(){
+  currentLang = await loadKey('duliban-lang', 'es');
+  tableStatus = await loadKey('duliban-table-status', {});
+  tableLayout = await loadKey('duliban-table-layout', null) || defaultLayout();
+  orders = await loadKey('duliban-orders', []);
+  customers = await loadKey('duliban-customers', []);
+  reservations = await loadKey('duliban-reservations', []);
+  applyStaticText();
+  renderFloor();
+  renderOrders();
+  renderReservations();
+  renderCustomers();
+  syncWithLive();
+}
+init();
+</script>
+
+</body>
+</html>
