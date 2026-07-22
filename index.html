@@ -121,7 +121,9 @@
 
   .res-main{ flex:1; min-width:0; }
   .res-toolbar-top{ display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
-  .date-display{ font-family: Georgia, serif; font-size:18px; color:var(--text); margin-right:auto; }
+  .date-display{ font-family: Georgia, serif; font-size:18px; color:var(--text); display:flex; align-items:center; gap:8px; }
+  .date-display .cal-icon{ width:18px; height:18px; color: var(--gold-soft); flex-shrink:0; }
+  .relative-day-badge{ background: var(--gold-dim); color: var(--gold-soft); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; padding:4px 10px; border-radius:20px; margin-right:auto; }
   .res-search-input{ width:100%; margin-bottom:14px; }
 
   .res-table-wrap{ border:1px solid var(--line); border-radius: var(--radius); overflow:hidden; margin-bottom:18px; }
@@ -211,13 +213,30 @@
   </section>
 
   <section id="view-orders" class="view">
-    <div class="stats" id="orderStats"></div>
-    <div class="toolbar">
-      <button class="btn" id="newOrderBtn" onclick="openOrderModal()"></button>
-      <select id="orderFilter" onchange="renderOrders()"></select>
-      <button class="btn secondary syncBtn" onclick="syncWithLive()" id="syncBtn1"></button>
+    <div class="res-layout">
+      <div class="res-calendar-panel">
+        <div class="cal-header">
+          <button class="cal-nav" onclick="calShiftMonth(-1,'order')">‹</button>
+          <span id="ordCalMonthLabel"></span>
+          <button class="cal-nav" onclick="calShiftMonth(1,'order')">›</button>
+        </div>
+        <div class="cal-weekdays" id="ordCalWeekdays"></div>
+        <div class="cal-grid" id="ordCalGrid"></div>
+      </div>
+      <div class="res-main">
+        <div class="stats" id="orderStats"></div>
+        <div class="res-toolbar-top">
+          <div class="date-display" id="ordDateDisplay"></div>
+          <span class="relative-day-badge" id="ordRelativeDayBadge" style="display:none"></span>
+          <button class="btn secondary" onclick="goToToday('order')" id="ordNowBtn"></button>
+          <button class="btn" id="newOrderBtn" onclick="openOrderModal()"></button>
+          <select id="orderFilter" onchange="renderOrders()"></select>
+          <button class="btn secondary syncBtn" onclick="syncWithLive()" id="syncBtn1"></button>
+        </div>
+        <input type="text" id="orderSearch" class="res-search-input" oninput="renderOrders()">
+        <div id="ordersList"></div>
+      </div>
     </div>
-    <div id="ordersList"></div>
   </section>
 
   <section id="view-reservations" class="view">
@@ -234,6 +253,7 @@
       <div class="res-main">
         <div class="res-toolbar-top">
           <div class="date-display" id="resDateDisplay"></div>
+          <span class="relative-day-badge" id="relativeDayBadge" style="display:none"></span>
           <button class="btn secondary" onclick="goToToday()" id="nowBtn"></button>
           <button class="btn" id="newResBtn" onclick="openReservationModal()"></button>
           <button class="btn secondary syncBtn" onclick="syncWithLive()" id="syncBtn2"></button>
@@ -319,7 +339,8 @@ const LANG = {
     sync:'🔄 Sincronizar con Railway', syncing:'Sincronizando...', syncError:'No se pudo conectar con Railway. Comprueba tu conexión.',
     liveTag:'En vivo', todayLabel:'Hoy', tomorrowLabel:'Mañana', yesterdayLabel:'Ayer',
     pastReservations:'Reservas anteriores', dateUnconfirmed:'Fecha por confirmar',
-    reservationSingular:'reserva', reservationsPlural:'reservas', nowBtn:'Hoy', searchResPh:'Buscar reserva por nombre o teléfono'
+    reservationSingular:'reserva', reservationsPlural:'reservas', nowBtn:'Ir a hoy', searchResPh:'Buscar reserva por nombre o teléfono',
+    searchOrderPh:'Buscar pedido por nombre o teléfono'
   },
   en: {
     brandTitle: 'Liban — Operations', tabFloor:'Floor plan', tabOrders:'Pickup orders', tabRes:'Reservations', tabCust:'Customers', tabMkt:'Marketing',
@@ -351,7 +372,8 @@ const LANG = {
     sync:'🔄 Sync with Railway', syncing:'Syncing...', syncError:'Could not connect to Railway. Check your connection.',
     liveTag:'Live', todayLabel:'Today', tomorrowLabel:'Tomorrow', yesterdayLabel:'Yesterday',
     pastReservations:'Past reservations', dateUnconfirmed:'Date to be confirmed',
-    reservationSingular:'reservation', reservationsPlural:'reservations', nowBtn:'Today', searchResPh:'Search reservation by name or phone'
+    reservationSingular:'reservation', reservationsPlural:'reservations', nowBtn:'Jump to today', searchResPh:'Search reservation by name or phone',
+    searchOrderPh:'Search order by name or phone'
   }
 };
 let currentLang = 'es';
@@ -361,7 +383,7 @@ async function setLang(l){
   currentLang = l;
   await saveKey('duliban-lang', l);
   applyStaticText();
-  renderFloor(); renderOrders(); renderCalendar(); renderReservations(); renderCustomers();
+  renderFloor(); renderOrderCalendar(); renderOrders(); renderCalendar(); renderReservations(); renderCustomers();
   if(document.getElementById('view-marketing').classList.contains('active')) renderMarketing();
 }
 
@@ -383,6 +405,8 @@ function applyStaticText(){
   document.getElementById('newResBtn').textContent = t('newRes');
   document.getElementById('nowBtn').textContent = t('nowBtn');
   document.getElementById('resSearch').placeholder = t('searchResPh');
+  document.getElementById('ordNowBtn').textContent = t('nowBtn');
+  document.getElementById('orderSearch').placeholder = t('searchOrderPh');
   document.querySelectorAll('.syncBtn').forEach(b=> b.textContent = t('sync'));
   document.getElementById('newCustBtn').textContent = t('newCust');
   document.getElementById('customerSearch').placeholder = t('searchPh');
@@ -421,6 +445,7 @@ async function syncWithLive(){
       id: 'live_ord_' + idx,
       name: r.Name || r.name || '',
       phone: r.Phone || r.phone || '',
+      date: r.PickupDate || r.pickup_date || '',
       time: r.PickupTime || r.pickup_time || '',
       items: r.Items || r.items || '',
       notes: r.Notes || '',
@@ -466,6 +491,7 @@ async function syncWithLive(){
     }));
     customers = [...liveCustomers, ...customers.filter(c=>!c.live)];
 
+    renderOrderCalendar();
     renderOrders();
     renderCalendar();
     renderReservations();
@@ -639,6 +665,7 @@ function openOrderModal(existing){
       <input type="hidden" id="o_id" value="${o.id||''}">
       <div class="field"><label>${t('custName')}</label><input id="o_name" type="text" value="${o.name||''}"></div>
       <div class="field"><label>${t('phone')}</label><input id="o_phone" type="text" value="${o.phone||''}"></div>
+      <div class="field"><label>${t('date')}</label><input id="o_date" type="date" value="${o.date || dateKey(selectedOrderDate)}"></div>
       <div class="field"><label>${t('pickupTime')}</label><input id="o_time" type="time" value="${o.time||''}"></div>
       <div class="field">
         <label>${t('items')}</label>
@@ -654,7 +681,7 @@ function openOrderModal(existing){
       <div class="field"><label>${t('channel')}</label>
         <select id="o_channel">
           <option value="Manual" ${o.channel==='Manual'?'selected':''}>${t('chManual')}</option>
-          <option value="Voice" ${o.channel==='Voice'?'selected':''}>${t('chVoice')}</option>
+          <option value="Voice" ${(o.channel||'').toLowerCase()==='voice'?'selected':''}>${t('chVoice')}</option>
           <option value="WhatsApp" ${o.channel==='WhatsApp'?'selected':''}>${t('chWhatsapp')}</option>
         </select>
       </div>
@@ -694,6 +721,7 @@ async function saveOrder(){
   const id = document.getElementById('o_id').value;
   const name = document.getElementById('o_name').value.trim();
   const phone = document.getElementById('o_phone').value.trim();
+  const date = document.getElementById('o_date').value;
   const time = document.getElementById('o_time').value;
   const notes = document.getElementById('o_notes').value.trim();
   const channel = document.getElementById('o_channel').value;
@@ -703,21 +731,22 @@ async function saveOrder(){
   if(!name || lines.length===0){ alert(t('requiredOrder')); return; }
   if(id){
     const o = orders.find(x=>x.id===id);
-    Object.assign(o, {name, phone, time, notes, channel, lines, total, items: itemsText});
+    Object.assign(o, {name, phone, date, time, notes, channel, lines, total, items: itemsText});
     await saveKey('duliban-orders', orders);
   } else {
-    orders.unshift({ id:'ord_'+Date.now(), name, phone, time, notes, channel, lines, total, items: itemsText, status:'new', createdAt: new Date().toISOString() });
+    orders.unshift({ id:'ord_'+Date.now(), name, phone, date, time, notes, channel, lines, total, items: itemsText, status:'new', createdAt: new Date().toISOString() });
     await saveKey('duliban-orders', orders);
     try{
       await fetch(RAILWAY_URL + '/save-dashboard-order', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ name, phone, time, notes, channel, lines })
+        body: JSON.stringify({ name, phone, date, time, notes, channel, lines })
       });
       syncWithLive();
     } catch(e){ console.error('order save error', e); }
   }
   closeModal();
+  renderOrderCalendar();
   renderOrders();
 }
 async function touchCustomer(name, phone){
@@ -738,6 +767,7 @@ async function deleteOrder(id){
   if(!confirm(t('confirmDelOrder'))) return;
   orders = orders.filter(x=>x.id!==id);
   await saveKey('duliban-orders', orders);
+  renderOrderCalendar();
   renderOrders();
 }
 function isToday(iso){
@@ -746,25 +776,48 @@ function isToday(iso){
   return d.getFullYear()===n.getFullYear() && d.getMonth()===n.getMonth() && d.getDate()===n.getDate();
 }
 function renderOrders(){
+  const months = currentLang==='es' ? MONTH_ES : MONTH_EN;
+  const weekdays = currentLang==='es' ? WEEKDAY_ES : WEEKDAY_EN;
+  const wd = weekdays[selectedOrderDate.getDay()];
+  const dateLabel = currentLang==='es'
+    ? `${wd.charAt(0).toUpperCase()+wd.slice(1)}, ${selectedOrderDate.getDate()} de ${months[selectedOrderDate.getMonth()]}`
+    : `${wd}, ${months[selectedOrderDate.getMonth()]} ${selectedOrderDate.getDate()}`;
+  document.getElementById('ordDateDisplay').innerHTML = calendarIconSvg() + dateLabel;
+
+  const realToday = new Date(); realToday.setHours(0,0,0,0);
+  const diffFromReal = Math.round((selectedOrderDate - realToday) / 86400000);
+  const badge = document.getElementById('ordRelativeDayBadge');
+  if(diffFromReal === 0){ badge.textContent = t('todayLabel'); badge.style.display = 'inline-block'; }
+  else if(diffFromReal === -1){ badge.textContent = t('yesterdayLabel'); badge.style.display = 'inline-block'; }
+  else if(diffFromReal === 1){ badge.textContent = t('tomorrowLabel'); badge.style.display = 'inline-block'; }
+  else { badge.style.display = 'none'; }
+
   const filter = document.getElementById('orderFilter').value || 'all';
-  const list = document.getElementById('ordersList');
-  const stats = document.getElementById('orderStats');
+  const search = (document.getElementById('orderSearch').value || '').toLowerCase();
+  const dayKey = dateKey(selectedOrderDate);
+  let dayItems = orders.filter(o => {
+    const d = parseResDate(o.date);
+    return d && dateKey(d) === dayKey;
+  });
+  if(filter !== 'all') dayItems = dayItems.filter(o => o.status === filter);
+  if(search) dayItems = dayItems.filter(o => o.name.toLowerCase().includes(search) || (o.phone||'').includes(search));
+  dayItems.sort((a,b)=> (a.time||'').localeCompare(b.time||''));
+
   const statusLabelMap = { new:t('stNew'), preparing:t('stPrep'), ready:t('stReady'), done:t('stDone') };
   const counts = { new:0, preparing:0, ready:0, done:0 };
-  let todayCount = 0, todayRevenue = 0;
-  orders.forEach(o=>{
-    counts[o.status] = (counts[o.status]||0)+1;
-    if(isToday(o.createdAt)){ todayCount++; todayRevenue += (o.total||0); }
-  });
-  stats.innerHTML = `
+  let dayRevenue = 0;
+  dayItems.forEach(o=>{ counts[o.status] = (counts[o.status]||0)+1; dayRevenue += (o.total||0); });
+  document.getElementById('orderStats').innerHTML = `
     <div class="stat"><div class="n">${counts.new}</div><div class="l">${t('statNew')}</div></div>
     <div class="stat"><div class="n">${counts.preparing}</div><div class="l">${t('statPrep')}</div></div>
     <div class="stat"><div class="n">${counts.ready}</div><div class="l">${t('statReady')}</div></div>
-    <div class="stat"><div class="n">${todayCount}</div><div class="l">${t('statTotal')}</div></div>
-    <div class="stat"><div class="n">€${todayRevenue.toFixed(2)}</div><div class="l">${t('statRevenue')}</div></div>`;
-  const shown = filter==='all' ? orders : orders.filter(o=>o.status===filter);
-  if(shown.length===0){ list.innerHTML = `<div class="empty">${t('noOrders')}</div>`; return; }
-  list.innerHTML = shown.map(o => `
+    <div class="stat"><div class="n">${dayItems.length}</div><div class="l">${t('statTotal')}</div></div>
+    <div class="stat"><div class="n">€${dayRevenue.toFixed(2)}</div><div class="l">${t('statRevenue')}</div></div>`;
+
+  const list = document.getElementById('ordersList');
+  if(dayItems.length===0){ list.innerHTML = `<div class="empty">${t('noOrders')}</div>`; return; }
+
+  list.innerHTML = dayItems.map(o => `
     <div class="card">
       <div class="row-flex">
         <div>
@@ -772,7 +825,7 @@ function renderOrders(){
           <div class="item-meta">${o.phone || '—'}${o.time ? ' · '+o.time : ''}</div>
         </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end">
-          <span class="badge channel-${(o.channel||'Manual').toLowerCase()}">${o.channel==='Voice'?t('voiceCall'):o.channel==='WhatsApp'?'WhatsApp':t('manual')}${o.live?' · '+t('liveTag'):''}</span>
+          <span class="badge channel-${(o.channel||'Manual').toLowerCase()}">${(o.channel||'').toLowerCase()==='voice'?t('voiceCall'):(o.channel||'').toLowerCase()==='whatsapp'?'WhatsApp':t('manual')}${o.live?' · '+t('liveTag'):''}</span>
           <span class="badge ${o.status}">${statusLabelMap[o.status]}</span>
         </div>
       </div>
@@ -806,7 +859,7 @@ function openReservationModal(existing){
       <div class="field"><label>${t('channel')}</label>
         <select id="r_channel">
           <option value="Manual" ${r.channel==='Manual'?'selected':''}>${t('chManual')}</option>
-          <option value="Voice" ${r.channel==='Voice'?'selected':''}>${t('chVoice')}</option>
+          <option value="Voice" ${(r.channel||'').toLowerCase()==='voice'?'selected':''}>${t('chVoice')}</option>
         </select>
       </div>
       <div class="modal-actions">
@@ -888,24 +941,78 @@ let selectedResDate = new Date(); selectedResDate.setHours(0,0,0,0);
 let calMonth = selectedResDate.getMonth();
 let calYear = selectedResDate.getFullYear();
 
-function calShiftMonth(delta){
-  calMonth += delta;
-  if(calMonth < 0){ calMonth = 11; calYear--; }
-  if(calMonth > 11){ calMonth = 0; calYear++; }
-  renderCalendar();
+let selectedOrderDate = new Date(); selectedOrderDate.setHours(0,0,0,0);
+let orderCalMonth = selectedOrderDate.getMonth();
+let orderCalYear = selectedOrderDate.getFullYear();
+
+function calShiftMonth(delta, which){
+  which = which || 'res';
+  if(which==='order'){
+    orderCalMonth += delta;
+    if(orderCalMonth < 0){ orderCalMonth = 11; orderCalYear--; }
+    if(orderCalMonth > 11){ orderCalMonth = 0; orderCalYear++; }
+    renderOrderCalendar();
+  } else {
+    calMonth += delta;
+    if(calMonth < 0){ calMonth = 11; calYear--; }
+    if(calMonth > 11){ calMonth = 0; calYear++; }
+    renderCalendar();
+  }
 }
-function goToToday(){
-  selectedResDate = new Date(); selectedResDate.setHours(0,0,0,0);
-  calMonth = selectedResDate.getMonth();
-  calYear = selectedResDate.getFullYear();
-  renderCalendar();
-  renderReservations();
+function goToToday(which){
+  which = which || 'res';
+  const t = new Date(); t.setHours(0,0,0,0);
+  if(which==='order'){
+    selectedOrderDate = t; orderCalMonth = t.getMonth(); orderCalYear = t.getFullYear();
+    renderOrderCalendar(); renderOrders();
+  } else {
+    selectedResDate = t; calMonth = t.getMonth(); calYear = t.getFullYear();
+    renderCalendar(); renderReservations();
+  }
 }
 function selectCalDay(y, m, d){
   selectedResDate = new Date(y, m, d);
   calMonth = m; calYear = y;
   renderCalendar();
   renderReservations();
+}
+function selectOrderCalDay(y, m, d){
+  selectedOrderDate = new Date(y, m, d);
+  orderCalMonth = m; orderCalYear = y;
+  renderOrderCalendar();
+  renderOrders();
+}
+
+function buildCalendarGrid(month, year, selectedDate, datesWithDot, onSelectFnName){
+  const firstOfMonth = new Date(year, month, 1);
+  const startOffset = firstOfMonth.getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  let cells = [];
+  for(let i=startOffset-1; i>=0; i--){
+    cells.push({ day: daysInPrevMonth-i, month: month-1, year: year, other:true });
+  }
+  for(let d=1; d<=daysInMonth; d++){
+    cells.push({ day:d, month:month, year:year, other:false });
+  }
+  while(cells.length % 7 !== 0){
+    const idx = cells.length - (startOffset+daysInMonth);
+    cells.push({ day: idx+1, month: month+1, year: year, other:true });
+  }
+
+  return cells.map(c => {
+    const cellDate = new Date(c.year, c.month, c.day);
+    const key = dateKey(cellDate);
+    const isSelected = dateKey(selectedDate) === key;
+    const isToday = dateKey(today) === key;
+    const hasDot = datesWithDot.has(key);
+    return `<div class="cal-day ${c.other?'other-month':''} ${isSelected?'selected':''} ${isToday?'today-marker':''}"
+      onclick="${onSelectFnName}(${c.year},${c.month},${c.day})">
+      <span>${c.day}</span>${hasDot ? '<span class="dot"></span>' : ''}
+    </div>`;
+  }).join('');
 }
 
 function renderCalendar(){
@@ -917,35 +1024,23 @@ function renderCalendar(){
   const datesWithRes = new Set();
   reservations.forEach(r => { const d = parseResDate(r.date); if(d) datesWithRes.add(dateKey(d)); });
 
-  const firstOfMonth = new Date(calYear, calMonth, 1);
-  const startOffset = firstOfMonth.getDay();
-  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
-  const daysInPrevMonth = new Date(calYear, calMonth, 0).getDate();
-  const today = new Date(); today.setHours(0,0,0,0);
+  document.getElementById('calGrid').innerHTML = buildCalendarGrid(calMonth, calYear, selectedResDate, datesWithRes, 'selectCalDay');
+}
 
-  let cells = [];
-  for(let i=startOffset-1; i>=0; i--){
-    cells.push({ day: daysInPrevMonth-i, month: calMonth-1, year: calYear, other:true });
-  }
-  for(let d=1; d<=daysInMonth; d++){
-    cells.push({ day:d, month:calMonth, year:calYear, other:false });
-  }
-  while(cells.length % 7 !== 0){
-    const idx = cells.length - (startOffset+daysInMonth);
-    cells.push({ day: idx+1, month: calMonth+1, year: calYear, other:true });
-  }
+function renderOrderCalendar(){
+  const months = currentLang==='es' ? MONTH_ES : MONTH_EN;
+  const weekdaysShort = currentLang==='es' ? WEEKDAY_SHORT_ES : WEEKDAY_SHORT_EN;
+  document.getElementById('ordCalMonthLabel').textContent = `${months[orderCalMonth].charAt(0).toUpperCase()+months[orderCalMonth].slice(1)} ${orderCalYear}`;
+  document.getElementById('ordCalWeekdays').innerHTML = weekdaysShort.map(w=>`<div>${w}</div>`).join('');
 
-  document.getElementById('calGrid').innerHTML = cells.map(c => {
-    const cellDate = new Date(c.year, c.month, c.day);
-    const key = dateKey(cellDate);
-    const isSelected = dateKey(selectedResDate) === key;
-    const isToday = dateKey(today) === key;
-    const hasRes = datesWithRes.has(key);
-    return `<div class="cal-day ${c.other?'other-month':''} ${isSelected?'selected':''} ${isToday?'today-marker':''}"
-      onclick="selectCalDay(${c.year},${c.month},${c.day})">
-      <span>${c.day}</span>${hasRes ? '<span class="dot"></span>' : ''}
-    </div>`;
-  }).join('');
+  const datesWithOrd = new Set();
+  orders.forEach(o => { const d = parseResDate(o.date); if(d) datesWithOrd.add(dateKey(d)); });
+
+  document.getElementById('ordCalGrid').innerHTML = buildCalendarGrid(orderCalMonth, orderCalYear, selectedOrderDate, datesWithOrd, 'selectOrderCalDay');
+}
+
+function calendarIconSvg(){
+  return '<svg class="cal-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 9.5h18" stroke="currentColor" stroke-width="1.6"/><path d="M8 3v3M16 3v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
 }
 
 function renderReservations(){
@@ -955,7 +1050,15 @@ function renderReservations(){
   const dateLabel = currentLang==='es'
     ? `${wd.charAt(0).toUpperCase()+wd.slice(1)}, ${selectedResDate.getDate()} de ${months[selectedResDate.getMonth()]}`
     : `${wd}, ${months[selectedResDate.getMonth()]} ${selectedResDate.getDate()}`;
-  document.getElementById('resDateDisplay').textContent = '📅 ' + dateLabel;
+  document.getElementById('resDateDisplay').innerHTML = calendarIconSvg() + dateLabel;
+
+  const realToday = new Date(); realToday.setHours(0,0,0,0);
+  const diffFromReal = Math.round((selectedResDate - realToday) / 86400000);
+  const badge = document.getElementById('relativeDayBadge');
+  if(diffFromReal === 0){ badge.textContent = t('todayLabel'); badge.style.display = 'inline-block'; }
+  else if(diffFromReal === -1){ badge.textContent = t('yesterdayLabel'); badge.style.display = 'inline-block'; }
+  else if(diffFromReal === 1){ badge.textContent = t('tomorrowLabel'); badge.style.display = 'inline-block'; }
+  else { badge.style.display = 'none'; }
 
   const search = (document.getElementById('resSearch').value || '').toLowerCase();
   const dayKey = dateKey(selectedResDate);
@@ -991,7 +1094,7 @@ function renderReservations(){
           <td class="rt-name">${r.name}</td>
           <td>${r.table || '—'}</td>
           <td>${r.phone || '—'}</td>
-          <td><span class="badge channel-${(r.channel||'Manual').toLowerCase()}">${r.channel==='Voice'?t('voiceCall'):t('manual')}</span></td>
+          <td><span class="badge channel-${(r.channel||'Manual').toLowerCase()}">${(r.channel||'').toLowerCase()==='voice'?t('voiceCall'):t('manual')}</span></td>
           <td class="rt-notes">${r.notes || '—'}</td>
           <td>
             <div class="rt-actions">
@@ -1142,6 +1245,7 @@ async function init(){
   reservations = await loadKey('duliban-reservations', []);
   applyStaticText();
   renderFloor();
+  renderOrderCalendar();
   renderOrders();
   renderCalendar();
   renderReservations();
