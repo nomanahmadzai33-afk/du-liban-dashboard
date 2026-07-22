@@ -76,6 +76,68 @@
   .row-actions{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
   .row-actions button{ font-size:12px; padding:6px 12px; }
   .empty{ text-align:center; padding:50px 20px; color: var(--text-faint); font-size:14px; }
+
+  /* ---- Section headers (date groups) ---- */
+  .section-header{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin: 22px 0 10px; padding-bottom: 8px; border-bottom: 1px solid var(--line);
+  }
+  .section-header:first-child{ margin-top: 4px; }
+  .section-title{ font-family: Georgia, serif; font-size: 17px; color: var(--gold-soft); letter-spacing: 0.3px; }
+  .section-count{ font-size: 12px; color: var(--text-faint); }
+  .section-divider{
+    margin: 30px 0 6px; padding-top: 18px; border-top: 2px dashed var(--line);
+    font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-faint);
+  }
+
+  /* ---- Card polish ---- */
+  .card{ transition: border-color 0.15s, transform 0.1s; }
+  .card:hover{ border-color: var(--gold-dim); }
+  header.top{ background: linear-gradient(180deg, rgba(201,151,63,0.05), transparent); }
+  .btn{ transition: filter 0.12s, transform 0.08s; }
+  .btn:hover{ filter: brightness(1.12); }
+  .btn:active{ transform: scale(0.97); }
+  .table-btn{ transition: background 0.15s, transform 0.08s, box-shadow 0.15s; }
+  .table-btn:hover{ box-shadow: 0 0 0 2px var(--gold-dim); }
+  nav.tabs button{ transition: color 0.15s; position: relative; }
+  .stat{ transition: border-color 0.15s; }
+  .stat:hover{ border-color: var(--gold-dim); }
+
+  /* ---- Reservations: calendar + table layout ---- */
+  .res-layout{ display:flex; gap:24px; align-items:flex-start; }
+  .res-calendar-panel{ width:260px; flex-shrink:0; background: var(--bg-card); border:1px solid var(--line); border-radius: var(--radius); padding:16px; }
+  .cal-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; font-weight:600; font-size:14px; color:var(--gold-soft); }
+  .cal-nav{ background:none; border:none; color:var(--text-dim); font-size:18px; cursor:pointer; padding:2px 8px; }
+  .cal-nav:hover{ color:var(--gold-soft); }
+  .cal-weekdays{ display:grid; grid-template-columns: repeat(7,1fr); font-size:10px; color:var(--text-faint); text-align:center; margin-bottom:4px; }
+  .cal-grid{ display:grid; grid-template-columns: repeat(7,1fr); gap:2px; }
+  .cal-day{ aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:12px; color:var(--text-dim); cursor:pointer; border-radius:6px; position:relative; }
+  .cal-day:hover{ background: var(--bg-panel); }
+  .cal-day.other-month{ color: var(--text-faint); opacity:0.4; }
+  .cal-day.selected{ background: var(--gold); color:#1a1510; font-weight:700; }
+  .cal-day.today-marker{ box-shadow: inset 0 0 0 1px var(--gold-dim); }
+  .cal-day .dot{ width:4px; height:4px; border-radius:50%; background: var(--gold-soft); margin-top:2px; }
+  .cal-day.selected .dot{ background:#1a1510; }
+
+  .res-main{ flex:1; min-width:0; }
+  .res-toolbar-top{ display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  .date-display{ font-family: Georgia, serif; font-size:18px; color:var(--text); margin-right:auto; }
+  .res-search-input{ width:100%; margin-bottom:14px; }
+
+  .res-table-wrap{ border:1px solid var(--line); border-radius: var(--radius); overflow:hidden; margin-bottom:18px; }
+  table.res-table{ width:100%; border-collapse:collapse; font-size:13px; }
+  table.res-table thead th{ text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-faint); padding:10px 12px; background:#0c0a08; border-bottom:1px solid var(--line); }
+  table.res-table tbody td{ padding:10px 12px; border-bottom:1px solid var(--line-soft); color:var(--text-dim); }
+  table.res-table tbody tr:last-child td{ border-bottom:none; }
+  table.res-table tbody tr:hover{ background: rgba(201,151,63,0.05); }
+  table.res-table .rt-name{ color:var(--text); font-weight:600; }
+  table.res-table .rt-group-row td{ background:#0c0a08; color:var(--text-faint); font-size:11px; text-transform:uppercase; letter-spacing:0.5px; padding:8px 12px; }
+  table.res-table .rt-actions{ display:flex; gap:6px; opacity:0; transition:opacity 0.12s; }
+  table.res-table tbody tr:hover .rt-actions{ opacity:1; }
+  table.res-table .rt-actions button{ font-size:11px; padding:4px 9px; }
+  table.res-table .rt-notes{ max-width:220px; font-size:12px; color:var(--text-faint); }
+
+
   .price{ color: var(--gold-soft); font-weight:600; }
 
   .modal-bg{ position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:50; padding:20px; overflow-y:auto; }
@@ -159,11 +221,27 @@
   </section>
 
   <section id="view-reservations" class="view">
-    <div class="toolbar">
-      <button class="btn" id="newResBtn" onclick="openReservationModal()"></button>
-      <button class="btn secondary syncBtn" onclick="syncWithLive()" id="syncBtn2"></button>
+    <div class="res-layout">
+      <div class="res-calendar-panel">
+        <div class="cal-header">
+          <button class="cal-nav" onclick="calShiftMonth(-1)">‹</button>
+          <span id="calMonthLabel"></span>
+          <button class="cal-nav" onclick="calShiftMonth(1)">›</button>
+        </div>
+        <div class="cal-weekdays" id="calWeekdays"></div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+      <div class="res-main">
+        <div class="res-toolbar-top">
+          <div class="date-display" id="resDateDisplay"></div>
+          <button class="btn secondary" onclick="goToToday()" id="nowBtn"></button>
+          <button class="btn" id="newResBtn" onclick="openReservationModal()"></button>
+          <button class="btn secondary syncBtn" onclick="syncWithLive()" id="syncBtn2"></button>
+        </div>
+        <input type="text" id="resSearch" class="res-search-input" oninput="renderReservations()">
+        <div id="reservationsList"></div>
+      </div>
     </div>
-    <div id="reservationsList"></div>
   </section>
 
   <section id="view-customers" class="view">
@@ -239,7 +317,9 @@ const LANG = {
     guestPrompt:'Nombre del cliente (opcional):', tableEditPrompt:'Escribe un nuevo número/nombre para renombrar,\no escribe "borrar" para eliminar esta mesa:',
     newTablePrompt:'Número o nombre de la nueva mesa:', shapePrompt:'Forma: escribe "cuadrada", "redonda" o "diamante"',
     sync:'🔄 Sincronizar con Railway', syncing:'Sincronizando...', syncError:'No se pudo conectar con Railway. Comprueba tu conexión.',
-    liveTag:'En vivo'
+    liveTag:'En vivo', todayLabel:'Hoy', tomorrowLabel:'Mañana', yesterdayLabel:'Ayer',
+    pastReservations:'Reservas anteriores', dateUnconfirmed:'Fecha por confirmar',
+    reservationSingular:'reserva', reservationsPlural:'reservas', nowBtn:'Hoy', searchResPh:'Buscar reserva por nombre o teléfono'
   },
   en: {
     brandTitle: 'Liban — Operations', tabFloor:'Floor plan', tabOrders:'Pickup orders', tabRes:'Reservations', tabCust:'Customers', tabMkt:'Marketing',
@@ -269,7 +349,9 @@ const LANG = {
     guestPrompt:'Guest name (optional):', tableEditPrompt:'Type a new number/name to rename,\nor type "delete" to remove this table:',
     newTablePrompt:'Number or name for the new table:', shapePrompt:'Shape: type "square", "round" or "diamond"',
     sync:'🔄 Sync with Railway', syncing:'Syncing...', syncError:'Could not connect to Railway. Check your connection.',
-    liveTag:'Live'
+    liveTag:'Live', todayLabel:'Today', tomorrowLabel:'Tomorrow', yesterdayLabel:'Yesterday',
+    pastReservations:'Past reservations', dateUnconfirmed:'Date to be confirmed',
+    reservationSingular:'reservation', reservationsPlural:'reservations', nowBtn:'Today', searchResPh:'Search reservation by name or phone'
   }
 };
 let currentLang = 'es';
@@ -279,7 +361,7 @@ async function setLang(l){
   currentLang = l;
   await saveKey('duliban-lang', l);
   applyStaticText();
-  renderFloor(); renderOrders(); renderReservations(); renderCustomers();
+  renderFloor(); renderOrders(); renderCalendar(); renderReservations(); renderCustomers();
   if(document.getElementById('view-marketing').classList.contains('active')) renderMarketing();
 }
 
@@ -299,6 +381,8 @@ function applyStaticText(){
   document.getElementById('newOrderBtn').textContent = t('newOrder');
   document.getElementById('orderFilter').innerHTML = `<option value="all">${t('allStatus')}</option><option value="new">${t('stNew')}</option><option value="preparing">${t('stPrep')}</option><option value="ready">${t('stReady')}</option><option value="done">${t('stDone')}</option>`;
   document.getElementById('newResBtn').textContent = t('newRes');
+  document.getElementById('nowBtn').textContent = t('nowBtn');
+  document.getElementById('resSearch').placeholder = t('searchResPh');
   document.querySelectorAll('.syncBtn').forEach(b=> b.textContent = t('sync'));
   document.getElementById('newCustBtn').textContent = t('newCust');
   document.getElementById('customerSearch').placeholder = t('searchPh');
@@ -356,6 +440,7 @@ async function syncWithLive(){
       time: r.Time || r.time || '',
       guests: r.Guests || r.guests || '',
       table: '',
+      notes: r.Notes || '',
       channel: (r.Channel || 'Voice'),
       status: r.Status || 'confirmed',
       live: true
@@ -382,6 +467,7 @@ async function syncWithLive(){
     customers = [...liveCustomers, ...customers.filter(c=>!c.live)];
 
     renderOrders();
+    renderCalendar();
     renderReservations();
     renderFloor();
     renderCustomers();
@@ -716,6 +802,7 @@ function openReservationModal(existing){
       <div class="field"><label>${t('time')}</label><input id="r_time" type="time" value="${r.time||''}"></div>
       <div class="field"><label>${t('guests')}</label><input id="r_guests" type="number" min="1" value="${r.guests||2}"></div>
       <div class="field"><label>${t('table')}</label><input id="r_table" type="text" value="${r.table||''}"></div>
+      <div class="field"><label>${t('notesField')}</label><input id="r_notes" type="text" value="${r.notes||''}" placeholder="${t('notesPh')}"></div>
       <div class="field"><label>${t('channel')}</label>
         <select id="r_channel">
           <option value="Manual" ${r.channel==='Manual'?'selected':''}>${t('chManual')}</option>
@@ -737,14 +824,26 @@ async function saveReservation(){
   const time = document.getElementById('r_time').value;
   const guests = document.getElementById('r_guests').value;
   const table = document.getElementById('r_table').value.trim();
+  const notes = document.getElementById('r_notes').value.trim();
   const channel = document.getElementById('r_channel').value;
   if(!name || !date || !time){ alert(t('requiredRes')); return; }
+  const fullNotes = [table ? ('Mesa '+table) : '', notes].filter(Boolean).join('. ');
   if(id){
     const r = reservations.find(x=>x.id===id);
-    Object.assign(r, {name, phone, date, time, guests, table, channel});
+    Object.assign(r, {name, phone, date, time, guests, table, notes, channel});
     await saveKey('duliban-reservations', reservations);
+    if(r.live){
+      try{
+        await fetch(RAILWAY_URL + '/add-reservation-note', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ name, phone, notes: fullNotes })
+        });
+        syncWithLive();
+      } catch(e){ console.error('note update error', e); }
+    }
   } else {
-    reservations.unshift({ id:'res_'+Date.now(), name, phone, date, time, guests, table, channel, status:'confirmed' });
+    reservations.unshift({ id:'res_'+Date.now(), name, phone, date, time, guests, table, notes, channel, status:'confirmed' });
     await saveKey('duliban-reservations', reservations);
     try{
       const parts = date.split('-');
@@ -752,38 +851,158 @@ async function saveReservation(){
       await fetch(RAILWAY_URL + '/voice-reservation', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ name, phone, date: ddmmyyyy, time, guests, notes: table ? ('Mesa '+table) : '', channel })
+        body: JSON.stringify({ name, phone, date: ddmmyyyy, time, guests, notes: fullNotes, channel })
       });
       syncWithLive();
     } catch(e){ console.error('reservation save error', e); }
   }
   closeModal();
+  renderCalendar();
   renderReservations();
 }
 async function deleteReservation(id){
   if(!confirm(t('confirmDelRes'))) return;
   reservations = reservations.filter(r=>r.id!==id);
   await saveKey('duliban-reservations', reservations);
+  renderCalendar();
   renderReservations();
 }
+const WEEKDAY_ES = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const WEEKDAY_EN = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const WEEKDAY_SHORT_ES = ['D','L','M','X','J','V','S'];
+const WEEKDAY_SHORT_EN = ['S','M','T','W','T','F','S'];
+const MONTH_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const MONTH_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function parseResDate(str){
+  if(!str) return null;
+  let m = String(str).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(m) return new Date(+m[1], +m[2]-1, +m[3]);
+  m = String(str).match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if(m) return new Date(+m[3], +m[2]-1, +m[1]);
+  return null;
+}
+function dateKey(d){ return d.toISOString().slice(0,10); }
+
+let selectedResDate = new Date(); selectedResDate.setHours(0,0,0,0);
+let calMonth = selectedResDate.getMonth();
+let calYear = selectedResDate.getFullYear();
+
+function calShiftMonth(delta){
+  calMonth += delta;
+  if(calMonth < 0){ calMonth = 11; calYear--; }
+  if(calMonth > 11){ calMonth = 0; calYear++; }
+  renderCalendar();
+}
+function goToToday(){
+  selectedResDate = new Date(); selectedResDate.setHours(0,0,0,0);
+  calMonth = selectedResDate.getMonth();
+  calYear = selectedResDate.getFullYear();
+  renderCalendar();
+  renderReservations();
+}
+function selectCalDay(y, m, d){
+  selectedResDate = new Date(y, m, d);
+  calMonth = m; calYear = y;
+  renderCalendar();
+  renderReservations();
+}
+
+function renderCalendar(){
+  const months = currentLang==='es' ? MONTH_ES : MONTH_EN;
+  const weekdaysShort = currentLang==='es' ? WEEKDAY_SHORT_ES : WEEKDAY_SHORT_EN;
+  document.getElementById('calMonthLabel').textContent = `${months[calMonth].charAt(0).toUpperCase()+months[calMonth].slice(1)} ${calYear}`;
+  document.getElementById('calWeekdays').innerHTML = weekdaysShort.map(w=>`<div>${w}</div>`).join('');
+
+  const datesWithRes = new Set();
+  reservations.forEach(r => { const d = parseResDate(r.date); if(d) datesWithRes.add(dateKey(d)); });
+
+  const firstOfMonth = new Date(calYear, calMonth, 1);
+  const startOffset = firstOfMonth.getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const daysInPrevMonth = new Date(calYear, calMonth, 0).getDate();
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  let cells = [];
+  for(let i=startOffset-1; i>=0; i--){
+    cells.push({ day: daysInPrevMonth-i, month: calMonth-1, year: calYear, other:true });
+  }
+  for(let d=1; d<=daysInMonth; d++){
+    cells.push({ day:d, month:calMonth, year:calYear, other:false });
+  }
+  while(cells.length % 7 !== 0){
+    const idx = cells.length - (startOffset+daysInMonth);
+    cells.push({ day: idx+1, month: calMonth+1, year: calYear, other:true });
+  }
+
+  document.getElementById('calGrid').innerHTML = cells.map(c => {
+    const cellDate = new Date(c.year, c.month, c.day);
+    const key = dateKey(cellDate);
+    const isSelected = dateKey(selectedResDate) === key;
+    const isToday = dateKey(today) === key;
+    const hasRes = datesWithRes.has(key);
+    return `<div class="cal-day ${c.other?'other-month':''} ${isSelected?'selected':''} ${isToday?'today-marker':''}"
+      onclick="selectCalDay(${c.year},${c.month},${c.day})">
+      <span>${c.day}</span>${hasRes ? '<span class="dot"></span>' : ''}
+    </div>`;
+  }).join('');
+}
+
 function renderReservations(){
+  const months = currentLang==='es' ? MONTH_ES : MONTH_EN;
+  const weekdays = currentLang==='es' ? WEEKDAY_ES : WEEKDAY_EN;
+  const wd = weekdays[selectedResDate.getDay()];
+  const dateLabel = currentLang==='es'
+    ? `${wd.charAt(0).toUpperCase()+wd.slice(1)}, ${selectedResDate.getDate()} de ${months[selectedResDate.getMonth()]}`
+    : `${wd}, ${months[selectedResDate.getMonth()]} ${selectedResDate.getDate()}`;
+  document.getElementById('resDateDisplay').textContent = '📅 ' + dateLabel;
+
+  const search = (document.getElementById('resSearch').value || '').toLowerCase();
+  const dayKey = dateKey(selectedResDate);
+  let dayItems = reservations.filter(r => {
+    const d = parseResDate(r.date);
+    return d && dateKey(d) === dayKey;
+  });
+  if(search){
+    dayItems = dayItems.filter(r => r.name.toLowerCase().includes(search) || (r.phone||'').includes(search));
+  }
+  dayItems.sort((a,b)=> (a.time||'').localeCompare(b.time||''));
+
   const list = document.getElementById('reservationsList');
-  const sorted = [...reservations].sort((a,b)=> (a.date+a.time).localeCompare(b.date+b.time));
-  if(sorted.length===0){ list.innerHTML = `<div class="empty">${t('noRes')}</div>`; return; }
-  list.innerHTML = sorted.map(r => `
-    <div class="card">
-      <div class="row-flex">
-        <div>
-          <div class="item-name">${r.name}</div>
-          <div class="item-meta">${r.date} · ${r.time} · ${r.guests} ${t('guests').toLowerCase()}${r.table ? ' · '+t('table').split(' ')[0]+' '+r.table : ''}</div>
-        </div>
-        <span class="badge channel-${(r.channel||'Manual').toLowerCase()}">${r.channel==='Voice'?t('voiceCall'):t('manual')}</span>
-      </div>
-      <div class="row-actions">
-        <button class="btn secondary" onclick='openReservationModal(${JSON.stringify(r).replace(/'/g,"&apos;")})'>${t('edit')}</button>
-        <button class="btn danger" onclick="deleteReservation('${r.id}')">${t('delete')}</button>
-      </div>
-    </div>`).join('');
+  if(dayItems.length === 0){
+    list.innerHTML = `<div class="empty">${t('noRes')}</div>`;
+    return;
+  }
+
+  const totalGuests = dayItems.reduce((s,r)=> s + (parseInt(r.guests)||0), 0);
+  const groupLabel = `${dayItems.length} ${dayItems.length===1?t('reservationSingular'):t('reservationsPlural')} · ${totalGuests} ${t('guests').toLowerCase()}`;
+
+  let html = `<div class="res-table-wrap"><table class="res-table">
+    <thead><tr>
+      <th>${t('time')}</th><th>${t('guests')}</th><th>${t('custName')}</th><th>${t('table')}</th>
+      <th>${t('phone')}</th><th>${t('channel')}</th><th>${t('notesField')}</th><th></th>
+    </tr></thead>
+    <tbody>
+      <tr class="rt-group-row"><td colspan="8">${groupLabel}</td></tr>
+      ${dayItems.map(r => `
+        <tr>
+          <td>${r.time || '—'}</td>
+          <td>${r.guests || '—'}</td>
+          <td class="rt-name">${r.name}</td>
+          <td>${r.table || '—'}</td>
+          <td>${r.phone || '—'}</td>
+          <td><span class="badge channel-${(r.channel||'Manual').toLowerCase()}">${r.channel==='Voice'?t('voiceCall'):t('manual')}</span></td>
+          <td class="rt-notes">${r.notes || '—'}</td>
+          <td>
+            <div class="rt-actions">
+              <button class="btn secondary" onclick='openReservationModal(${JSON.stringify(r).replace(/'/g,"&apos;")})'>${t('edit')}</button>
+              <button class="btn danger" onclick="deleteReservation('${r.id}')">${t('delete')}</button>
+            </div>
+          </td>
+        </tr>`).join('')}
+    </tbody>
+  </table></div>`;
+  list.innerHTML = html;
 }
 
 /* ============ CUSTOMERS ============ */
@@ -924,6 +1143,7 @@ async function init(){
   applyStaticText();
   renderFloor();
   renderOrders();
+  renderCalendar();
   renderReservations();
   renderCustomers();
   syncWithLive();
