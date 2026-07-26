@@ -1078,7 +1078,6 @@ function renderReservations(){
     const d = parseResDate(r.date);
     return d && dateKey(d) === dayKey;
   });
-  dayItems = dayItems.filter(r => (r.status||'').toUpperCase() !== 'CANCELLED');
   if(search){
     dayItems = dayItems.filter(r => r.name.toLowerCase().includes(search) || (r.phone||'').includes(search));
   }
