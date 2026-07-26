@@ -915,10 +915,22 @@ async function saveReservation(){
 }
 async function deleteReservation(id){
   if(!confirm(t('confirmDelRes'))) return;
+  if(id.startsWith('live_res_')){
+    const idx = parseInt(id.replace('live_res_',''), 10);
+    const row = idx + 2;
+    try{
+      await fetch(RAILWAY_URL + '/delete-reservation', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ row })
+      });
+    } catch(e){ console.error('delete-reservation error', e); }
+  }
   reservations = reservations.filter(r=>r.id!==id);
   await saveKey('duliban-reservations', reservations);
   renderCalendar();
   renderReservations();
+  syncWithLive();
 }
 const WEEKDAY_ES = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 const WEEKDAY_EN = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -1251,6 +1263,7 @@ async function init(){
   renderReservations();
   renderCustomers();
   syncWithLive();
+  setInterval(syncWithLive, 20000);
 }
 init();
 </script>
