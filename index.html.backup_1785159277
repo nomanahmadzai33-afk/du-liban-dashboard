@@ -190,7 +190,6 @@
     <button data-view="reservations"></button>
     <button data-view="customers"></button>
     <button data-view="marketing"></button>
-    <button data-view="pendientes"></button>
   </nav>
 </header>
 
@@ -285,14 +284,6 @@
     <div id="marketingList" style="margin-top:20px"></div>
   </section>
 
-  <section id="view-pendientes" class="view">
-    <div class="hint" id="pendHint"></div>
-    <div class="toolbar">
-      <button class="btn secondary syncBtn" onclick="syncWithLive()"></button>
-    </div>
-    <div id="pendingList"></div>
-  </section>
-
 </div>
 
 <div id="modalRoot"></div>
@@ -349,10 +340,7 @@ const LANG = {
     liveTag:'En vivo', todayLabel:'Hoy', tomorrowLabel:'Mañana', yesterdayLabel:'Ayer',
     pastReservations:'Reservas anteriores', dateUnconfirmed:'Fecha por confirmar',
     reservationSingular:'reserva', reservationsPlural:'reservas', nowBtn:'Ir a hoy', searchResPh:'Buscar reserva por nombre o teléfono',
-    searchOrderPh:'Buscar pedido por nombre o teléfono',
-    tabPend:'Pendientes', pendHint:'Cancelaciones y cambios pedidos por teléfono, no hechos aún en SevenRooms. Márcalos como hechos cuando los apliques manualmente.',
-    noPending:'No hay acciones pendientes.', pendCancel:'Cancelación', pendChange:'Cambio', pendMarkDone:'Marcar como hecho',
-    pendOriginal:'Original', pendNew:'Nuevo', pendDone:'Hecho'
+    searchOrderPh:'Buscar pedido por nombre o teléfono'
   },
   en: {
     brandTitle: 'Liban — Operations', tabFloor:'Floor plan', tabOrders:'Pickup orders', tabRes:'Reservations', tabCust:'Customers', tabMkt:'Marketing',
@@ -385,10 +373,7 @@ const LANG = {
     liveTag:'Live', todayLabel:'Today', tomorrowLabel:'Tomorrow', yesterdayLabel:'Yesterday',
     pastReservations:'Past reservations', dateUnconfirmed:'Date to be confirmed',
     reservationSingular:'reservation', reservationsPlural:'reservations', nowBtn:'Jump to today', searchResPh:'Search reservation by name or phone',
-    searchOrderPh:'Search order by name or phone',
-    tabPend:'Pending', pendHint:'Cancellations and changes requested by phone, not yet done in SevenRooms. Mark them done once you apply them manually.',
-    noPending:'No pending actions.', pendCancel:'Cancellation', pendChange:'Change', pendMarkDone:'Mark as done',
-    pendOriginal:'Original', pendNew:'New', pendDone:'Done'
+    searchOrderPh:'Search order by name or phone'
   }
 };
 let currentLang = 'es';
@@ -411,8 +396,6 @@ function applyStaticText(){
   document.querySelector('[data-view="reservations"]').textContent = t('tabRes');
   document.querySelector('[data-view="customers"]').textContent = t('tabCust');
   document.querySelector('[data-view="marketing"]').textContent = t('tabMkt');
-  document.querySelector('[data-view="pendientes"]').textContent = t('tabPend');
-  document.getElementById('pendHint').textContent = t('pendHint');
   document.getElementById('editModeBtn').textContent = editMode ? t('exitEdit') : t('editTables');
   document.getElementById('editNote').textContent = t('editNote');
   document.getElementById('addTableBtn').textContent = t('addTable');
@@ -451,12 +434,11 @@ async function syncWithLive(){
   const btns = document.querySelectorAll('.syncBtn');
   btns.forEach(b=> b.textContent = t('syncing'));
   try{
-    const [ordersRes, resRes, tablesRes, custRes, pendRes] = await Promise.all([
+    const [ordersRes, resRes, tablesRes, custRes] = await Promise.all([
       fetch(RAILWAY_URL + '/get-orders').then(r=>r.json()).catch(()=>({orders:[]})),
       fetch(RAILWAY_URL + '/get-reservations').then(r=>r.json()).catch(()=>({reservations:[]})),
       fetch(RAILWAY_URL + '/get-tables').then(r=>r.json()).catch(()=>({tables:[]})),
-      fetch(RAILWAY_URL + '/get-customers').then(r=>r.json()).catch(()=>({customers:[]})),
-      fetch(RAILWAY_URL + '/get-pending-actions').then(r=>r.json()).catch(()=>({actions:[]}))
+      fetch(RAILWAY_URL + '/get-customers').then(r=>r.json()).catch(()=>({customers:[]}))
     ]);
 
     const liveOrders = (ordersRes.orders || []).map((r, idx) => ({
@@ -509,26 +491,12 @@ async function syncWithLive(){
     }));
     customers = [...liveCustomers, ...customers.filter(c=>!c.live)];
 
-    pendingActions = (pendRes.actions || []).map((r, idx) => ({
-      row: idx + 2,
-      type: r.Tipo || '',
-      name: r.Nombre || '',
-      date: r['Fecha Original'] || '',
-      time: r['Hora Original'] || '',
-      newDate: r['Nueva Fecha'] || '',
-      newTime: r['Nueva Hora'] || '',
-      phone: r.Telefono || '',
-      status: r.Estado || 'PENDIENTE',
-      notes: r.Notas || ''
-    }));
-
     renderOrderCalendar();
     renderOrders();
     renderCalendar();
     renderReservations();
     renderFloor();
     renderCustomers();
-    renderPendingActions();
   } catch(e){
     console.error('sync error', e);
     alert(t('syncError'));
@@ -551,7 +519,6 @@ let tableLayout = null;
 let orders = [];
 let customers = [];
 let reservations = [];
-let pendingActions = [];
 let editMode = false;
 let currentOrderLines = [];
 
@@ -671,46 +638,6 @@ document.getElementById('roomTabs').addEventListener('click', e=>{
   currentRoom = btn.dataset.room;
   renderFloor();
 });
-function renderPendingActions(){
-  const list = document.getElementById('pendingList');
-  const open = pendingActions.filter(p => (p.status||'').toUpperCase() !== 'HECHO');
-  if(open.length === 0){
-    list.innerHTML = `<div class="empty-state">${t('noPending')}</div>`;
-    return;
-  }
-  list.innerHTML = open.map(p => {
-    const typeLabel = p.type === 'CAMBIO' ? t('pendChange') : t('pendCancel');
-    const badgeColor = p.type === 'CAMBIO' ? 'var(--reserved)' : '#c0392b';
-    let detail = `${t('pendOriginal')}: ${p.date}${p.time ? ' ' + p.time : ''}`;
-    if(p.type === 'CAMBIO' && (p.newDate || p.newTime)){
-      detail += ` → ${t('pendNew')}: ${p.newDate}${p.newTime ? ' ' + p.newTime : ''}`;
-    }
-    return `<div class="res-card">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-        <div>
-          <span class="badge" style="background:${badgeColor}">${typeLabel}</span>
-          <strong style="margin-left:8px">${p.name}</strong>
-        </div>
-        <button class="btn small secondary" onclick="resolvePendingAction(${p.row})">${t('pendMarkDone')}</button>
-      </div>
-      <div style="margin-top:6px; opacity:0.85;">${detail}</div>
-      ${p.phone ? `<div style="opacity:0.7; font-size:0.9em;">${p.phone}</div>` : ''}
-      ${p.notes ? `<div style="opacity:0.7; font-size:0.9em;">${p.notes}</div>` : ''}
-    </div>`;
-  }).join('');
-}
-
-async function resolvePendingAction(row){
-  try{
-    await fetch(RAILWAY_URL + '/resolve-pending-action', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ row })
-    });
-  } catch(e){ console.error('resolve-pending-action error', e); }
-  await syncWithLive();
-}
-
 document.getElementById('tabs').addEventListener('click', e=>{
   const btn = e.target.closest('button[data-view]');
   if(!btn) return;
@@ -719,7 +646,6 @@ document.getElementById('tabs').addEventListener('click', e=>{
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+btn.dataset.view).classList.add('active');
   if(btn.dataset.view==='marketing') renderMarketing();
-  if(btn.dataset.view==='pendientes') renderPendingActions();
 });
 
 /* ============ ORDERS (with priced line items) ============ */
@@ -1337,7 +1263,6 @@ async function init(){
   renderCalendar();
   renderReservations();
   renderCustomers();
-  renderPendingActions();
   syncWithLive();
   setInterval(syncWithLive, 20000);
 }
