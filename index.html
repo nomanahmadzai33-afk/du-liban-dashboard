@@ -184,10 +184,26 @@
   #kitchenBanner .kb-icon{ font-size:16px; }
 
   /* ---- Monday closed in calendar ---- */
-  .cal-day.monday-closed{ opacity:0.38; cursor:default; }
-  .cal-day.monday-closed:hover{ background:none; }
+  .cal-day.monday-closed{
+    cursor:default;
+    background: rgba(177,80,63,0.06);
+  }
+  .cal-day.monday-closed:hover{ background: rgba(177,80,63,0.06); }
+  /* keep the day number perfectly centred like every other cell */
+  .cal-day.monday-closed > span:first-child{
+    color: var(--text-faint);
+    text-decoration: line-through;
+    text-decoration-color: rgba(177,80,63,0.55);
+    text-decoration-thickness: 1px;
+  }
+  /* closed label sits absolutely at the bottom so it never shifts the number */
   .cal-day.monday-closed .closed-label{
-    font-size:7px; color:#b1503f; text-transform:uppercase; letter-spacing:0.5px; margin-top:1px;
+    position:absolute;
+    bottom:2px; left:0; right:0;
+    text-align:center;
+    font-size:6px; line-height:1;
+    color:#b1503f; text-transform:uppercase; letter-spacing:0.3px;
+    pointer-events:none;
   }
 
   /* ── Auth gate ── */
