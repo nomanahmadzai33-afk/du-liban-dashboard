@@ -172,9 +172,81 @@
     .table-btn{ font-size: 11px; }
     .brand .sub{ display:none; }
   }
+
+  /* ---- Kitchen status banner ---- */
+  #kitchenBanner{
+    display:none; max-width:1180px; margin:0 auto 14px;
+    background:#3a1f0a; border:1px solid #a0540a; border-radius:8px;
+    padding:10px 16px; font-size:13px; font-weight:600; color:#f4a44a;
+    display:flex; align-items:center; gap:8px;
+  }
+  #kitchenBanner.visible{ display:flex; }
+  #kitchenBanner .kb-icon{ font-size:16px; }
+
+  /* ---- Monday closed in calendar ---- */
+  .cal-day.monday-closed{ opacity:0.38; cursor:default; }
+  .cal-day.monday-closed:hover{ background:none; }
+  .cal-day.monday-closed .closed-label{
+    font-size:7px; color:#b1503f; text-transform:uppercase; letter-spacing:0.5px; margin-top:1px;
+  }
+
+  /* ── Auth gate ── */
+  #authGate{
+    position:fixed; inset:0; z-index:9999;
+    background:#0e1117;
+    display:flex; align-items:center; justify-content:center;
+  }
+  #authGate.hidden{ display:none; }
+  .auth-box{
+    background:#1a1f2e; border:1px solid #2d3347; border-radius:14px;
+    padding:2.5rem 2rem; width:340px; max-width:90vw; text-align:center;
+    box-shadow:0 8px 40px rgba(0,0,0,.6);
+  }
+  .auth-logo{
+    font-size:1.6rem; font-weight:700; color:#d4a55a; letter-spacing:1px;
+    margin-bottom:.25rem;
+  }
+  .auth-sub{ font-size:.78rem; color:#6b7280; margin-bottom:1.8rem; }
+  .auth-box input{
+    width:100%; box-sizing:border-box;
+    background:#0e1117; border:1px solid #2d3347; border-radius:8px;
+    color:#e5e7eb; font-size:1rem; padding:.75rem 1rem;
+    outline:none; text-align:center; letter-spacing:.1em;
+    transition:border-color .2s;
+  }
+  .auth-box input:focus{ border-color:#d4a55a; }
+  .auth-box button{
+    margin-top:.9rem; width:100%; padding:.75rem;
+    background:#d4a55a; color:#0e1117; font-weight:700;
+    border:none; border-radius:8px; font-size:.95rem; cursor:pointer;
+    transition:opacity .2s;
+  }
+  .auth-box button:hover{ opacity:.88; }
+  .auth-error{
+    margin-top:.7rem; font-size:.78rem; color:#f87171;
+    min-height:1rem;
+  }
+  @keyframes shake{
+    0%,100%{transform:translateX(0)}
+    20%,60%{transform:translateX(-6px)}
+    40%,80%{transform:translateX(6px)}
+  }
+  .auth-shake{ animation:shake .35s ease; }
 </style>
 </head>
 <body>
+
+<!-- ── Auth gate overlay ── -->
+<div id="authGate">
+  <div class="auth-box">
+    <div class="auth-logo">du Liban</div>
+    <div class="auth-sub">Staff Operations Dashboard</div>
+    <input type="password" id="authInput" placeholder="Enter password"
+           onkeydown="if(event.key==='Enter')checkAuth()"/>
+    <button onclick="checkAuth()">Entrar →</button>
+    <div class="auth-error" id="authError"></div>
+  </div>
+</div>
 
 <header class="top">
   <div class="brand">
@@ -193,6 +265,11 @@
     <button data-view="pendientes"></button>
   </nav>
 </header>
+
+<div id="kitchenBanner" role="alert">
+  <span class="kb-icon">⚠️</span>
+  <span id="kitchenBannerMsg">Cocina cerrada — no se aceptan pedidos en este momento</span>
+</div>
 
 <div class="wrap">
 
@@ -1094,9 +1171,12 @@ function buildCalendarGrid(month, year, selectedDate, datesWithDot, onSelectFnNa
     const isSelected = dateKey(selectedDate) === key;
     const isToday = dateKey(today) === key;
     const hasDot = datesWithDot.has(key);
-    return `<div class="cal-day ${c.other?'other-month':''} ${isSelected?'selected':''} ${isToday?'today-marker':''}"
-      onclick="${onSelectFnName}(${c.year},${c.month},${c.day})">
-      <span>${c.day}</span>${hasDot ? '<span class="dot"></span>' : ''}
+    const isMonday = cellDate.getDay() === 1;
+    const mondayClass = isMonday ? 'monday-closed' : '';
+    const clickHandler = isMonday ? '' : `onclick="${onSelectFnName}(${c.year},${c.month},${c.day})"`;
+    return `<div class="cal-day ${c.other?'other-month':''} ${isSelected?'selected':''} ${isToday?'today-marker':''} ${mondayClass}"
+      ${clickHandler}>
+      <span>${c.day}</span>${isMonday ? '<span class="closed-label">cerrado</span>' : (hasDot ? '<span class="dot"></span>' : '')}
     </div>`;
   }).join('');
 }
@@ -1322,6 +1402,30 @@ function renderMarketing(){
     </div>`).join('');
 }
 
+/* ============ KITCHEN STATUS BANNER ============ */
+function updateKitchenBanner(){
+  const now = new Date();
+  const totalMins = now.getHours() * 60 + now.getMinutes();
+  // Kitchen closed: 16:00–20:00 (960–1200) and after 23:30 (1410+)
+  const midBreak = totalMins >= 960 && totalMins < 1200;
+  const nightClose = totalMins >= 1410;
+  const banner = document.getElementById('kitchenBanner');
+  const msg = document.getElementById('kitchenBannerMsg');
+  if(midBreak){
+    msg.textContent = currentLang === 'en'
+      ? '⚠️ Kitchen closed (16:00–20:00). Reopens at 20:00.'
+      : '⚠️ Cocina cerrada (16:00–20:00). Reapertura a las 20:00.';
+    banner.classList.add('visible');
+  } else if(nightClose){
+    msg.textContent = currentLang === 'en'
+      ? '⚠️ Kitchen closed for the night (after 23:30). No more orders accepted today.'
+      : '⚠️ Cocina cerrada por esta noche (después de las 23:30). No se aceptan más pedidos hoy.';
+    banner.classList.add('visible');
+  } else {
+    banner.classList.remove('visible');
+  }
+}
+
 /* ============ INIT ============ */
 async function init(){
   currentLang = await loadKey('duliban-lang', 'es');
@@ -1339,10 +1443,52 @@ async function init(){
   renderCustomers();
   renderPendingActions();
   syncWithLive();
+  updateKitchenBanner();
   setInterval(syncWithLive, 20000);
+  setInterval(updateKitchenBanner, 60000);
 }
+
+// ── Password authentication ──────────────────────────────────────────────────
+// Change DASHBOARD_PASSWORD to whatever you want the staff to use.
+const DASHBOARD_PASSWORD = 'duliban2026';
+const AUTH_KEY = 'duliban-auth-session';
+
+function checkAuth(){
+  const input = document.getElementById('authInput');
+  const errEl = document.getElementById('authError');
+  if(input.value === DASHBOARD_PASSWORD){
+    sessionStorage.setItem(AUTH_KEY, '1');
+    document.getElementById('authGate').classList.add('hidden');
+    input.value = '';
+    errEl.textContent = '';
+  } else {
+    errEl.textContent = 'Contraseña incorrecta / Wrong password';
+    const box = document.querySelector('.auth-box');
+    box.classList.remove('auth-shake');
+    void box.offsetWidth; // reflow to restart animation
+    box.classList.add('auth-shake');
+    input.value = '';
+    input.focus();
+  }
+}
+
+(function bootstrapAuth(){
+  if(sessionStorage.getItem(AUTH_KEY) === '1'){
+    // Already authenticated this browser session
+    document.getElementById('authGate').classList.add('hidden');
+  } else {
+    // Focus password input immediately
+    document.addEventListener('DOMContentLoaded', () =>
+      document.getElementById('authInput').focus());
+  }
+})();
+
 init();
 </script>
 
 </body>
 </html>
+
+</file>
+
+</uploaded_files>
