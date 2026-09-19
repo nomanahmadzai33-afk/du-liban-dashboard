@@ -2,7 +2,8 @@
   "name": "du-liban-dashboard",
   "version": "1.0.0",
   "scripts": {
-    "start": "npx serve . -l $PORT"
+    "start": "npx serve . -l $PORT",
+    "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
     "serve": "^14.2.1"
