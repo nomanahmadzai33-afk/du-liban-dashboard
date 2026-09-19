@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#152c25">
+  <title>Reservar mesa · Du Liban</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#263129;background:#f7f4ee}
+    *{box-sizing:border-box}body{margin:0}header{background:#152c25;color:#fff;padding:38px 20px 34px;text-align:center}
+    header small{letter-spacing:.22em;text-transform:uppercase;color:#d7bb87}h1{font-family:Georgia,serif;font-weight:400;font-size:clamp(2.2rem,7vw,3.5rem);margin:10px 0}
+    header p{margin:0;color:#e0e5de}main{max-width:850px;margin:28px auto;padding:0 16px 60px}
+    section{background:#fff;border:1px solid #e6e0d5;border-radius:16px;padding:24px;margin-bottom:18px;box-shadow:0 5px 22px #152c2508}
+    h2{font-family:Georgia,serif;font-weight:400;margin:0 0 18px;font-size:1.5rem}label{display:block;font-weight:600;font-size:.88rem;margin-bottom:7px}
+    input,select,textarea{font:inherit;width:100%;padding:12px;border:1px solid #c9c9c1;border-radius:8px;background:#fff;color:#263129}
+    input:focus,select:focus,textarea:focus,button:focus-visible{outline:3px solid #bd9864;outline-offset:2px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.areas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .area,.slot{font:inherit;text-align:left;border:1px solid #d1d7ce;border-radius:10px;background:#fff;padding:15px;cursor:pointer;color:#263129}
+    .area[aria-pressed="true"],.slot[aria-pressed="true"]{border:2px solid #315a46;background:#edf4ec;padding:14px}
+    .area strong{display:block}.area span{font-size:.82rem;color:#626d64}.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+    .slot{text-align:center;padding:10px}.slot[aria-pressed="true"]{padding:9px}.service{margin:20px 0 10px;color:#315a46;font-weight:700}
+    .hint{color:#626d64;line-height:1.5}.notice{padding:14px;border-radius:9px;background:#f4ede0;color:#584126;margin-top:12px}
+    .error{background:#fce9e7;color:#8d3025}.success{background:#e5f3e5;color:#265c37}
+    button.primary{border:0;border-radius:9px;background:#315a46;color:#fff;font:inherit;font-weight:700;padding:14px 22px;cursor:pointer}
+    button:disabled{cursor:not-allowed;opacity:.55}.hidden{display:none}footer{text-align:center;padding:24px;color:#626d64}
+    @media(max-width:600px){.grid,.areas{grid-template-columns:1fr}.slots{grid-template-columns:repeat(3,1fr)}section{padding:20px}}
+  </style>
+</head>
+<body>
+  <header><small>La Moraleja · Madrid</small><h1>Du Liban</h1><p>Reserva tu mesa</p></header>
+  <main>
+    <section aria-labelledby="when-title">
+      <h2 id="when-title">¿Cuándo nos visitas?</h2>
+      <div class="grid">
+        <div><label for="date">Fecha</label><input id="date" type="date" required></div>
+        <div><label for="party">Personas</label><select id="party" required></select></div>
+      </div>
+      <p class="hint">Abrimos de martes a domingo. Durante la tarde ofrecemos shisha y cócteles en las terrazas; la cocina está cerrada de 16:00 a 20:00.</p>
+    </section>
+    <section aria-labelledby="area-title">
+      <h2 id="area-title">Elige tu zona</h2>
+      <div id="areas" class="areas" role="group" aria-label="Zona de la reserva"></div>
+    </section>
+    <section aria-labelledby="time-title">
+      <h2 id="time-title">Horas disponibles</h2>
+      <div id="slots" aria-live="polite"><p class="hint">Selecciona una fecha, el número de personas y una zona.</p></div>
+    </section>
+    <section id="details" class="hidden" aria-labelledby="details-title">
+      <h2 id="details-title">Tus datos</h2>
+      <form id="booking-form">
+        <div class="grid">
+          <div><label for="name">Nombre</label><input id="name" name="name" autocomplete="name" required maxlength="100"></div>
+          <div><label for="phone">Teléfono</label><input id="phone" name="phone" type="tel" autocomplete="tel" required maxlength="30"></div>
+        </div>
+        <p><label for="email">Email (opcional)</label><input id="email" name="email" type="email" autocomplete="email"></p>
+        <p><label for="notes">Ocasión o petición especial (opcional)</label><textarea id="notes" name="notes" rows="3" maxlength="500"></textarea></p>
+        <p class="hint">Usaremos tus datos para gestionar tu reserva. La información comercial requiere un consentimiento separado.</p>
+        <button id="submit" class="primary" type="submit">Solicitar reserva</button>
+      </form>
+    </section>
+    <div id="message" role="status" aria-live="polite"></div>
+  </main>
+  <footer>Du Liban · La Moraleja · <a href="tel:+34917544838">917 544 838</a></footer>
+  <script type="module" src="./booking-page.mjs"></script>
+</body>
+</html>
