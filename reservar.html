@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#162a23"><title>Reservar mesa · Du Liban</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#21332a;background:#f7f5f0}*{box-sizing:border-box}body{margin:0}header{background:#162a23;color:#fff;padding:42px 18px;text-align:center}header small{letter-spacing:.18em;color:#e1c08d}h1,h2{font-family:Georgia,serif;font-weight:400}h1{font-size:clamp(2.4rem,8vw,4rem);margin:8px 0}header p{margin:0;color:#e4e9e3}main{max-width:1060px;margin:30px auto;padding:0 18px 60px}section{margin-bottom:32px}h2{font-size:1.65rem}.intro{line-height:1.65;max-width:760px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.card{background:#fff;border-radius:13px;overflow:hidden;box-shadow:0 5px 22px #162a2312}.card img{width:100%;height:215px;object-fit:cover;display:block}.card div{padding:17px}.card h3{margin:0 0 7px;font-family:Georgia,serif;font-size:1.35rem}.card p{margin:0;color:#526158;line-height:1.5}.panel{background:#fff;border-radius:14px;padding:25px;box-shadow:0 5px 22px #162a2312}.fields{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;max-width:620px}label{display:block;font-weight:600;margin-bottom:7px}input,select{font:inherit;width:100%;padding:12px;border:1px solid #bfcac1;border-radius:7px}.button{display:inline-block;margin-top:18px;background:#315a46;color:white;text-decoration:none;padding:14px 23px;border-radius:8px;font-weight:700}.button[aria-disabled=true]{opacity:.5}a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #bc9360;outline-offset:2px}.hint{color:#536159;line-height:1.55}.notice{color:#8a3427}footer{text-align:center;padding:22px;color:#536159}@media(max-width:750px){.grid{grid-template-columns:1fr 1fr}}@media(max-width:520px){.grid,.fields{grid-template-columns:1fr}.card img{height:230px}}
+  </style>
+</head>
+<body>
+  <header><small>LA MORALEJA · MADRID</small><h1>Du Liban</h1><p>Un lugar para encontrarnos. Reserva tu mesa.</p></header>
+  <main>
+    <section><h2>Elige el ambiente</h2><p class="intro">Disfruta de la cocina libanesa en el salón interior o en nuestras terrazas. Podrás elegir la zona disponible al completar tu reserva.</p>
+      <div class="grid">
+        <article class="card"><img src="assets/booking/salon-interior.jpg" alt="Mesas preparadas en el salón interior de Du Liban" loading="lazy"><div><h3>Salón interior</h3><p>Un espacio acogedor para comer y cenar.</p></div></article>
+        <article class="card"><img src="assets/booking/terraza-cubierta.jpg" alt="Mesas de la terraza cubierta bajo techo" loading="lazy"><div><h3>Terraza cubierta</h3><p>Al aire libre, con cubierta.</p></div></article>
+        <article class="card"><img src="assets/booking/terraza-exterior.jpg" alt="Mesas en la terraza exterior junto a la fuente" loading="lazy"><div><h3>Terraza exterior</h3><p>Al aire libre y sin cubierta fija.</p></div></article>
+      </div>
+    </section>
+    <section class="panel"><h2>Reserva tu mesa</h2><div class="fields"><div><label for="date">Fecha</label><input id="date" type="date" required></div><div><label for="party">Personas</label><select id="party"></select></div></div>
+      <p class="hint">Abrimos de martes a domingo. La reserva online se completa en nuestro sistema de reservas, donde verás los horarios y zonas disponibles en tiempo real. Comida de 13:00 a 15:15; shisha y cócteles en las terrazas de 15:30 a 19:45; cena de 20:00 a 22:15.</p>
+      <a id="reserve-link" class="button" href="https://www.sevenrooms.com/explore/duliban/reservations/create/search/" rel="noopener noreferrer">Ver disponibilidad y reservar</a>
+      <p id="message" class="notice" role="status" aria-live="polite"></p><p class="hint">Selecciona de nuevo la fecha y el número de personas en el sistema de reservas para confirmar. Para grupos de más de 12 personas o solicitudes de VIP, llama al <a href="tel:+34917544838">917 544 838</a>.</p>
+    </section>
+  </main>
+  <footer>Du Liban · La Moraleja · <a href="tel:+34917544838">917 544 838</a></footer>
+  <script type="module" src="./booking-page.mjs"></script>
+</body>
+</html>
